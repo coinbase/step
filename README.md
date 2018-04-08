@@ -12,8 +12,6 @@ The three core components of Step are:
 
 ### Getting Started
 
-*This example is from [step-hello-world](github.com/coinbase/step-hello-world).*
-
 A Step function has two parts:
 
 1. A **State Machine** description in JSON, which outlines the flow of execution.
@@ -21,7 +19,7 @@ A Step function has two parts:
 
 *Step uses only one Lambda per State Machine making it easier to test and maintain.*
 
-**All following examples come from [`coinbase/step-hello-world`](github.com/coinbase/step-hello-world)**
+**All following examples come from [`coinbase/step-hello-world`](https://github.com/coinbase/step-hello-world)**
 
 Create a State Machine like this:
 

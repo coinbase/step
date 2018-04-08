@@ -20,12 +20,20 @@ To update the deployer you can use:
 
 ```
 git pull # pull down new code
-./deploy_deployer # call the step-deployer to deploy
+./deploy_deployer # call the step-deployer to deploy step-deployer
 ```
+
+To use the deployer:
+
+```
+step deploy -lambda <lambda name> -step <step-fn-name> -states <state machine json>
+```
+
+This will default the AWS region and account to those in the environment variables, the project and config names to tags on the lambda, the lambda file to `./lambda.zip`.
 
 ### Implementation
 
-There tasks of the deployer are:
+The tasks of the deployer are:
 
 1. **Validate**: Validate the sent release bundle
 2. **Lock**: grab a lock in S3 so others cannot deploy at the same time
@@ -38,6 +46,11 @@ The end states are:
 1. **Success**: deployed correctly
 2. **FailureClean**: something went wrong but it has recovered the previous good state
 3. **FailureDirty**: something went wrong and it is not in a good state. The existing step function, Lambda and/or lock require manual cleanup
+
+The limitations are:
+
+1. **State machine size** must be less than 30Kb as it is sent as part of the step-function input.
+2. **Lambda size** must be less than the RAM available to the `step-deployer` lambda as it validates the lambda SHA256 in memory
 
 ### Security
 
@@ -96,7 +109,7 @@ Assets uploaded to S3 are in the path `/<ProjectName>/<ConfigName>` so limiting 
 
 Each release the client generates a release `release_id`, a `created_at` date, and a SHA256 of the lambda file, and together also uploads the release to S3.
 
-The `step-deployer` will reject any request where the `created_at` date is not recent, the lambdas SHA does not match, or the releases don't match. This means that if a user can invoke the Step function, but not upload to S3 (or vice-versa) it is not possible to deploy old or malicious code.
+The `step-deployer` will reject any request where the `created_at` date is not recent, the lambdas SHA does not match the uploaded zip, or the release sent to the step function and S3 don't match. This means that if a user can invoke the step function, but not upload to S3 (or vice-versa) it is not possible to deploy old or malicious code.
 
 #### Audit
 
@@ -108,3 +121,4 @@ Some TODOs for the deployer are:
 
 1. Automated rollback on a bad deploy
 1. Assume-role sts into other accounts to deploy there, so only one `step-deployer` is needed for many accounts.
+1. Health checking the lambdas and Step Functions.

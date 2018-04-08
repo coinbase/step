@@ -11,4 +11,4 @@ go install
 GOOS=linux go build -o lambda
 zip lambda.zip lambda
 
-step deploy -lambda "coinbase-step-deployer" -step "coinbase-step-deployer" -states "$(./step json)"
+step deploy -lambda "coinbase-step-deployer" -step "coinbase-step-deployer" -states "$(step json)"

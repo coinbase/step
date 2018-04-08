@@ -21,6 +21,17 @@ git pull # pull down new code
 ./deploy_deployer # call the step-deployer to deploy
 ```
 
+### Implementation
+
+<img src="../assets/step-deployer-sm.png" align="right" alt="deployer state machine" />
+
+There main tasks of the deployer are:
+1. **Validate**: Validate the sent release bundle
+2. **Lock**: grab a lock in S3 so others cannot deploy at the same time
+3. **ValiadteResources**: Validate the referenced resources exist and have the correct tags and paths
+4. **Deploy**: Update the State Machine and Lambda, then release the Lock
+5. **ReleaseLockFailure**: If something goes wrong, try release the lock and fail
+
 ### Security
 
 Deployers are critical pieces of infrastructure as they may be used to compromise software they deploy. As such, we take security very seriously around the `step-deployer` and answer the following questions:

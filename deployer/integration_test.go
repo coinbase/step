@@ -322,32 +322,6 @@ func Test_DeployHandler_Execution_Errors_DifferentReleaseSHA(t *testing.T) {
 }
 
 // Upload Errors
-func Test_DeployHandler_Execution_Errors_DeployLambdaError(t *testing.T) {
-	release := MockRelease()
-	awsc := MockAwsClients(release)
-	awsc.Lambda.UpdateFunctionCodeError = fmt.Errorf("AWSLambdaError")
-
-	state_machine := createTestStateMachine(t, awsc)
-
-	_, err := state_machine.ExecuteToMap(release)
-
-	assert.Error(t, err)
-	assert.Regexp(t, "DeployError", state_machine.LastOutput())
-	assert.Regexp(t, "AWSLambdaError", state_machine.LastOutput())
-
-	assert.Equal(t, []string{
-		"ValidateFn",
-		"Validate",
-		"LockFn",
-		"Lock",
-		"ValidateResourcesFn",
-		"ValidateResources",
-		"DeployFn",
-		"Deploy",
-		"FailureDirty",
-	}, state_machine.ExecutionPath())
-}
-
 func Test_DeployHandler_Execution_Errors_DeploySFNError(t *testing.T) {
 	release := MockRelease()
 	awsc := MockAwsClients(release)
@@ -359,8 +333,36 @@ func Test_DeployHandler_Execution_Errors_DeploySFNError(t *testing.T) {
 	_, err := state_machine.ExecuteToMap(release)
 
 	assert.Error(t, err)
-	assert.Regexp(t, "DeployError", state_machine.LastOutput())
+	assert.Regexp(t, "DeploySFNError", state_machine.LastOutput())
 	assert.Regexp(t, "AWSSFNError", state_machine.LastOutput())
+
+	assert.Equal(t, []string{
+		"ValidateFn",
+		"Validate",
+		"LockFn",
+		"Lock",
+		"ValidateResourcesFn",
+		"ValidateResources",
+		"DeployFn",
+		"Deploy",
+		"ReleaseLockFailureFn",
+		"ReleaseLockFailure",
+		"FailureClean",
+	}, state_machine.ExecutionPath())
+}
+
+func Test_DeployHandler_Execution_Errors_DeployLambdaError(t *testing.T) {
+	release := MockRelease()
+	awsc := MockAwsClients(release)
+	awsc.Lambda.UpdateFunctionCodeError = fmt.Errorf("AWSLambdaError")
+
+	state_machine := createTestStateMachine(t, awsc)
+
+	_, err := state_machine.ExecuteToMap(release)
+
+	assert.Error(t, err)
+	assert.Regexp(t, "DeployLambdaError", state_machine.LastOutput())
+	assert.Regexp(t, "AWSLambdaError", state_machine.LastOutput())
 
 	assert.Equal(t, []string{
 		"ValidateFn",

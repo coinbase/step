@@ -87,7 +87,13 @@ func StateMachine() (*machine.StateMachine, error) {
         "Catch": [
           {
             "Comment": "Unsure of State, Leave Lock and Fail",
-            "ErrorEquals": ["DeployError"],
+            "ErrorEquals": ["DeploySFNError"],
+            "ResultPath": "$.error",
+            "Next": "ReleaseLockFailureFn"
+          },
+          {
+            "Comment": "Unsure of State, Leave Lock and Fail",
+            "ErrorEquals": ["DeployLambdaError"],
             "ResultPath": "$.error",
             "Next": "FailureDirty"
           }

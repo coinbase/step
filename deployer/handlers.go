@@ -38,7 +38,11 @@ type LockError struct {
 	*ErrorWrapper
 }
 
-type DeployError struct {
+type DeploySFNError struct {
+	*ErrorWrapper
+}
+
+type DeployLambdaError struct {
 	*ErrorWrapper
 }
 
@@ -93,12 +97,13 @@ func ValidateResourcesHandler(awsc aws.AwsClients) interface{} {
 func DeployHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
 
+		// Update Step Function first because State Machine if it fails we can recover
 		if err := release.DeployStepFunction(awsc.SFNClient()); err != nil {
-			return nil, &DeployError{&ErrorWrapper{err}}
+			return nil, &DeploySFNError{&ErrorWrapper{err}}
 		}
 
 		if err := release.DeployLambda(awsc.LambdaClient()); err != nil {
-			return nil, &DeployError{&ErrorWrapper{err}}
+			return nil, &DeployLambdaError{&ErrorWrapper{err}}
 		}
 
 		release.Success = to.Boolp(true)

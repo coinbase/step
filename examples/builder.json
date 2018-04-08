@@ -1,0 +1,57 @@
+{
+  "Comment": "Builder Example",
+  "StartAt": "FetchValidateCreateFn",
+  "States": {
+    "FetchValidateCreateFn": {
+      "Type": "Pass",
+      "Result": "FetchValidateCreate",
+      "ResultPath": "$.Task",
+      "Next": "FetchValidateCreate"
+    },
+    "FetchValidateCreate": {
+      "Type": "Task",
+      "Comment": "Fetch, Validate, Create Resources",
+      "Resource": "go://localhost/FetchValidateCreate",
+      "Next": "WaitForBuilt"
+    },
+    "WaitForBuilt": {
+      "Type": "Wait",
+      "Seconds" : 20,
+      "Next": "CheckBuiltFn"
+    },
+    "CheckBuiltFn": {
+      "Type": "Pass",
+      "Result": "CheckBuilt",
+      "ResultPath": "$.Task",
+      "Next": "CheckBuilt"
+    },
+    "CheckBuilt": {
+      "Type": "Task",
+      "Comment": "Is the build finished, has it errored?",
+      "Resource": "go://localhost/CheckBuilt",
+      "Next": "Built?"
+    },
+    "Built?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.Built",
+          "BooleanEquals": true,
+          "Next": "Success"
+        },
+        {
+          "Variable": "$.Error",
+          "BooleanEquals": true,
+          "Next": "Fail"
+        }
+      ],
+      "Default": "CleanUpFailureFn"
+    },
+    "Fail": {
+      "Type": "Fail"
+    },
+    "Success": {
+      "Type": "Success"
+    }
+  }
+}

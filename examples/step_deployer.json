@@ -1,0 +1,21 @@
+{
+  "Comment": "Step Deployer Example",
+  "StartAt": "FetchValidateCreateFn",
+  "States": {
+    "FetchValidateCreateFn": {
+      "Type": "Pass",
+      "Result": "FetchValidateCreate",
+      "ResultPath": "$.Task",
+      "Next": "FetchValidateCreate"
+    },
+    "FetchValidateCreate": {
+      "Type": "Task",
+      "Comment": "Fetch, Validate, Create Resources",
+      "Resource": "",
+      "Next": "WaitForHealthy"
+    },
+    "Success": {
+      "Type": "Success"
+    }
+  }
+}

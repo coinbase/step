@@ -1,0 +1,81 @@
+{
+  "Comment": "Deployer Example",
+  "StartAt": "FetchValidateCreateFn",
+  "States": {
+    "FetchValidateCreateFn": {
+      "Type": "Pass",
+      "Result": "FetchValidateCreate",
+      "ResultPath": "$.Task",
+      "Next": "FetchValidateCreate"
+    },
+    "FetchValidateCreate": {
+      "Type": "Task",
+      "Comment": "Fetch, Validate, Create Resources",
+      "Resource": "go://localhost/FetchValidateCreate",
+      "Next": "WaitForHealthy"
+    },
+    "WaitForHealthy": {
+      "Type": "Wait",
+      "Seconds" : 20,
+      "Next": "CheckHealthyFn"
+    },
+    "CheckHealthyFn": {
+      "Type": "Pass",
+      "Result": "CheckHealthy",
+      "ResultPath": "$.Task",
+      "Next": "CheckHealthy"
+    },
+    "CheckHealthy": {
+      "Type": "Task",
+      "Comment": "Is the new deploy healthy? Should we continue checking?",
+      "Resource": "go://localhost/CheckHealthy",
+      "Next": "Healthy?"
+    },
+    "Healthy?": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.Healthy",
+          "BooleanEquals": true,
+          "Next": "CleanUpFn"
+        },
+        {
+          "Variable": "$.CheckAgain",
+          "BooleanEquals": true,
+          "Next": "WaitForHealthy"
+        }
+      ],
+      "Default": "CleanUpFailureFn"
+    },
+    "CleanUpFn": {
+      "Type": "Pass",
+      "Result": "CleanUp",
+      "ResultPath": "$.Task",
+      "Next": "CleanUp"
+    },
+    "CleanUp": {
+      "Type": "Task",
+      "Comment": "Delete Old Resources",
+      "Resource": "go://localhost/CleanUp",
+      "Next": "Success"
+    },
+    "CleanUpFailureFn": {
+      "Type": "Pass",
+      "Result": "CleanUpFailure",
+      "ResultPath": "$.Task",
+      "Next": "CleanUpFailure"
+    },
+    "CleanUpFailure": {
+      "Type": "Task",
+      "Comment": "Delete Old Resources",
+      "Resource": "go://localhost/CleanUpFailure",
+      "Next": "Fail"
+    },
+    "Fail": {
+      "Type": "Fail"
+    },
+    "Success": {
+      "Type": "Succeed"
+    }
+  }
+}

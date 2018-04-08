@@ -1,6 +1,8 @@
 # Step Deployer
 
-The Step Deployer is a Step Function that can deploy step functions, so it can recursively deploy itself.
+<img src="../assets/step-deployer-sm.png" align="right" alt="deployer state machine" />
+
+The Step Deployer is an [AWS Step Function](https://docs.aws.amazon.com/step-functions/latest/dg/getting-started.html) that can deploy step functions, so it can recursively deploy itself.
 
 To create the necessary AWS resources you can use GeoEngineer which requires `ruby` and `terraform`:
 
@@ -23,14 +25,19 @@ git pull # pull down new code
 
 ### Implementation
 
-<img src="../assets/step-deployer-sm.png" align="right" alt="deployer state machine" />
+There tasks of the deployer are:
 
-There main tasks of the deployer are:
 1. **Validate**: Validate the sent release bundle
 2. **Lock**: grab a lock in S3 so others cannot deploy at the same time
 3. **ValiadteResources**: Validate the referenced resources exist and have the correct tags and paths
 4. **Deploy**: Update the State Machine and Lambda, then release the Lock
 5. **ReleaseLockFailure**: If something goes wrong, try release the lock and fail
+
+The end states are:
+
+1. **Success**: deployed correctly
+2. **FailureClean**: something went wrong but it has recovered the previous good state
+3. **FailureDirty**: something went wrong and it is not in a good state. The existing step function, Lambda and/or lock require manual cleanup
 
 ### Security
 

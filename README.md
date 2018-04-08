@@ -7,8 +7,8 @@ Step is a opinionated implementation of the [AWS State Machine language](./STATE
 The three core components of Step are:
 
 1. **Library**: tools for building and deploying Step Functions in Go.
-2. **Implementation**: of the AWS State Machine specification to test with the code together.
-3. **Deployer**: to deploy Lambda's and Step Functions securely.
+2. **Implementation**: of the AWS State Machine specification to test with the code together ([README](./machine)).
+3. **Deployer**: to deploy Lambda's and Step Functions securely, ([README](./deployer))
 
 ### Getting Started
 
@@ -134,7 +134,7 @@ and running `./step-hello-world exec '{"Greeting": "Hi"}'` returns:
 
 ### Testing
 
-A core benefit when using Step and joining the State Machine and Lambda together is that it makes it very easy to completely test your Step Function.
+A core benefit when using Step and joining the State Machine and Lambda together is that it makes it possible to test your Step Functions execution.
 
 For example, a basic test that ensures the correct output and execution path through the Hello World step function looks like:
 

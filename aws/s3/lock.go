@@ -13,7 +13,7 @@ type Lock struct {
 // GrabLock creates a lock file in S3 with a UUID
 // it returns a grabbed bool, and error
 // if the Lock already exists and UUID is equal to the existing lock it will returns true, otherwise false
-// if the Lock doesn't exist it will create the file and return false
+// if the Lock doesn't exist it will create the file and return true
 func GrabLock(s3c aws.S3API, bucket *string, lock_path *string, uuid string) (bool, error) {
 	lock := &Lock{uuid}
 	var s3_lock Lock

@@ -10,7 +10,6 @@ import (
 )
 
 func Test_GrabLock_Success(t *testing.T) {
-	// Should end in Alert Bad Thing Happened State
 	s3c := &mocks.MockS3Client{}
 	bucket := to.Strp("bucket")
 	path := to.Strp("path")

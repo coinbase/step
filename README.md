@@ -1,10 +1,6 @@
 # Step (Beta)
 
-<p style="float:right">
-<img src="./assets/one_small_step_for_gopher.png" alt="One Small Step for Go"/>
-<br/>
-Renee
-</p>
+<img align="right" src="./assets/one_small_step_for_gopher.png" alt="One Small Step for Go"/>
 
 Step is a opinionated implementation of the [AWS State Machine language](./STATE_SPEC.md) in [Go](https://golang.org/) used to build and test [AWS Step Functions](https://docs.aws.amazon.com/step-functions/latest/dg/getting-started.html) and [Lambdas](https://docs.aws.amazon.com/lambda/latest/dg/getting-started.html). Step combines the **Structure** of a state machine with the **Code** of a lambda so that the two can be developed, tested and maintained together.
 
@@ -210,3 +206,5 @@ Step is still very Beta and its API might change quickly.
 1. https://docs.aws.amazon.com/step-functions/latest/dg/step-functions-dg.pdf
 1. https://github.com/vkkis93/serverless-step-functions-offline
 1. https://github.com/totherik/step
+
+*CC Renee French for the logo, borrowed from GopherCon 2017*

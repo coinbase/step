@@ -18,15 +18,17 @@ bundle install
 
 To update the deployer you can use:
 
-```
+```bash
 git pull # pull down new code
-./deploy_deployer # call the step-deployer to deploy step-deployer
+./deploy_deployer # recursive deployer
 ```
 
 To use the deployer:
 
-```
-step deploy -lambda <lambda name> -step <step-fn-name> -states <state machine json>
+```bash
+step deploy -lambda <lambda name> \
+            -step <step-fn-name>  \
+            -states <state machine json>
 ```
 
 This will default the AWS region and account to those in the environment variables, the project and config names to tags on the lambda, the lambda file to `./lambda.zip`.

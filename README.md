@@ -8,7 +8,7 @@ The three core components of Step are:
 
 1. **Library**: tools for building and deploying Step Functions in Go.
 2. **Implementation**: of the AWS State Machine specification to test with the code together ([README](./machine)).
-3. **Deployer**: to deploy Lambda's and Step Functions securely, ([README](./deployer))
+3. **Deployer**: to deploy Lambda's and Step Functions securely ([README](./deployer))
 
 ### Getting Started
 

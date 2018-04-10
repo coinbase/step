@@ -58,7 +58,7 @@ func RegionAccount() (*string, *string) {
 	return &region, &account_id
 }
 
-func RegionAccountBang() (*string, *string) {
+func RegionAccountOrExit() (*string, *string) {
 	region, account_id := RegionAccount()
 
 	if region == nil || account_id == nil {

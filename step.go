@@ -80,7 +80,7 @@ func main() {
 
 	// Create the State machine
 	if jsonCommand.Parsed() {
-		region, account_id := to.RegionAccountBang()
+		region, account_id := to.RegionAccountOrExit()
 		jsonRun(to.LambdaArn(region, account_id, jsonLambda))
 	} else if execCommand.Parsed() {
 		execRun(execInput)
@@ -93,7 +93,7 @@ func main() {
 			bootstrapZip,
 		)
 	} else if deployCommand.Parsed() {
-		region, account_id := to.RegionAccountBang()
+		region, account_id := to.RegionAccountOrExit()
 		deployRun(
 			deployStates,
 			deployLambda,

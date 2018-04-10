@@ -78,6 +78,6 @@ func LambdaTasks(task_functions *handler.TaskFunctions) {
 
 	lambda.Start(handler)
 
-	fmt.Println("ERROR: Should never Get Here", err)
+	fmt.Println("ERROR: lambda.Start returned, but should have blocked")
 	os.Exit(1)
 }

@@ -39,7 +39,7 @@ func Test_Client_PrepareRelease(t *testing.T) {
 		to.Strp("lambda_name"),
 		to.Strp("step"),
 		to.Strp("bucket"),
-		to.Strp("../../resources/lambda.zip"), // Location to empty zip file
+		to.Strp("../../resources/empty_lambda.zip"), // Location to empty zip file
 	)
 
 	assert.NoError(t, err)
@@ -60,7 +60,7 @@ func Test_Client_PrepareReleaseBundle(t *testing.T) {
 		to.Strp("lambda_name"),
 		to.Strp("step"),
 		to.Strp("bucket"),
-		to.Strp("../../resources/lambda.zip"), // Location to empty zip file
+		to.Strp("../../resources/empty_lambda.zip"), // Location to empty zip file
 	)
 
 	assert.NoError(t, err)

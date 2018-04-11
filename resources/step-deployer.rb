@@ -205,7 +205,7 @@ lambda_function = project.resource("aws_lambda_function", step_name) {
     ignore_changes ["environment", "filename", "source_code_hash"]
   }
 
-  filename File.expand_path(File.dirname(__FILE__)) + '/lambda.zip'
+  filename File.expand_path(File.dirname(__FILE__)) + '/empty_lambda.zip'
   handler "lambda"
   memory_size 128
   runtime "go1.x"

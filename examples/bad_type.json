@@ -1,0 +1,8 @@
+{
+    "StartAt": "Start",
+    "States": {
+      "Start": {
+        "Type": "NOT_A_TYPE"
+      }
+  }
+}

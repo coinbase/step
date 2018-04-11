@@ -1,0 +1,12 @@
+#!/bin/bash
+# shortcut script to Bootstrap the step deployer
+# Bootstrapping is deploying itself from a local environment
+set -e
+
+./scripts/build_lambda_zip
+
+go build && go install
+step bootstrap -lambda "coinbase-step-deployer" -step "coinbase-step-deployer" -states "$(step json)"
+
+rm lambda.zip
+

@@ -1,0 +1,15 @@
+{
+    "Comment": "Adds some coordinates to the input",
+    "StartAt": "Coords",
+    "States": {
+      "Coords": {
+        "Type": "Pass",
+        "Result": {
+          "x": 0.1337,
+          "y": 3.14159
+        },
+        "ResultPath": "$.coords",
+        "End": true
+      }
+  }
+}

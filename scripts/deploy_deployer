@@ -1,0 +1,12 @@
+#!/bin/bash
+# shortcut script to Deploy the step deployer
+# So this uses the Step executable to call out to the Step Deployer
+# which is a Step Function to deploy itself
+set -e
+
+./scripts/build_lambda_zip
+
+go build && go install
+step deploy -lambda "coinbase-step-deployer" -step "coinbase-step-deployer" -states "$(step json)"
+
+rm lambda.zip

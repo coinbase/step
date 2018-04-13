@@ -37,6 +37,10 @@ func Boolp(s bool) *bool {
 	return &s
 }
 
+func ABytep(s []byte) *[]byte {
+	return &s
+}
+
 ////////
 // Base64
 ////////

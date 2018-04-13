@@ -19,6 +19,10 @@ func StepArn(region *string, account_id *string, name_or_arn *string) *string {
 	return createArn("arn:aws:states:%v:%v:stateMachine:%v", region, account_id, name_or_arn)
 }
 
+func RoleArn(account_id *string, name_or_arn *string) *string {
+	return createArn("arn:aws:iam::%v%v:role/%v", account_id, Strp(""), name_or_arn)
+}
+
 func ArnPath(arn string) string {
 	_, _, res := ArnRegionAccountResource(arn)
 

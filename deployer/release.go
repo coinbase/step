@@ -36,7 +36,7 @@ type Release struct {
 	LambdaName    *string `json:"lambda_name,omitempty"`   // Lambda Name
 	LambdaSHA256  *string `json:"lambda_sha256,omitempty"` // Lambda SHA256 Zip file
 	StepFnName    *string `json:"step_fn_name,omitempty"`  // Step Function Name
-	ReleaseSHA256 string  `json:"release_sha256"`          // Do not serialize
+	ReleaseSHA256 string  `json:"release_sha256"`          // Not Set By Client
 
 	StateMachineJSON *string `json:"state_machine_json,omitempty"`
 
@@ -66,7 +66,7 @@ func (r *Release) ValidateAttributes() error {
 		return err
 	}
 
-	if err := r.deployLambdaInput().Validate(); err != nil {
+	if err := r.deployLambdaInput(to.ABytep([]byte{})).Validate(); err != nil {
 		return err
 	}
 
@@ -244,18 +244,28 @@ func (r *Release) LambdaProjectConfigDeployerTags(lambdac aws.LambdaAPI) (*strin
 // AWS Methods
 //////////
 
-func (release *Release) deployLambdaInput() *lambda.UpdateFunctionCodeInput {
+func (release *Release) deployLambdaInput(zip *[]byte) *lambda.UpdateFunctionCodeInput {
 	return &lambda.UpdateFunctionCodeInput{
 		FunctionName: release.LambdaArn(),
-		S3Bucket:     release.Bucket,
-		S3Key:        release.LambdaZipPath(),
+		ZipFile:      *zip,
 	}
 }
 
-// DeployLambda uploads new Code to the Lambda
-func (release *Release) DeployLambda(lambdaClient aws.LambdaAPI) error {
-	_, err := lambdaClient.UpdateFunctionCode(release.deployLambdaInput())
+// DeployLambdaCode
+func (release *Release) DeployLambdaCode(lambdaClient aws.LambdaAPI, zip *[]byte) error {
+	_, err := lambdaClient.UpdateFunctionCode(release.deployLambdaInput(zip))
+	return err
+}
 
+// DeployLambda uploads new Code to the Lambda
+func (release *Release) DeployLambda(lambdaClient aws.LambdaAPI, s3c aws.S3API) error {
+	// Download and pass Zip file because lambda might be in another region or account
+	zip, err := s3.Get(s3c, release.Bucket, release.LambdaZipPath())
+	if err != nil {
+		return err
+	}
+
+	err = release.DeployLambdaCode(lambdaClient, zip)
 	if err != nil {
 		return err
 	}
@@ -333,11 +343,9 @@ func (release *Release) ReleasePath() *string {
 ///////
 
 func (release *Release) SetDefaults(region *string, account *string) {
-	// Must calculate first, changes will impact
-	release.ReleaseSHA256 = to.SHA256Struct(release)
-	release.UUID = to.TimeUUID("release-")
-
-	release.Success = to.Boolp(false)
+	if is.EmptyStr(release.UUID) {
+		release.UUID = to.TimeUUID("release-")
+	}
 
 	if is.EmptyStr(release.AwsRegion) {
 		release.AwsRegion = region
@@ -347,7 +355,8 @@ func (release *Release) SetDefaults(region *string, account *string) {
 		release.AwsAccountID = account
 	}
 
-	if is.EmptyStr(release.Bucket) {
-		release.Bucket = to.Strp(fmt.Sprintf("coinbase-step-deployer-%v", *release.AwsAccountID))
+	if is.EmptyStr(release.Bucket) && account != nil {
+		// default bucket is the default account_id not the release id (which could be in a different account)
+		release.Bucket = to.Strp(fmt.Sprintf("coinbase-step-deployer-%v", *account))
 	}
 }

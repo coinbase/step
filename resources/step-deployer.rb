@@ -29,6 +29,7 @@ project = project('coinbase', 'step-deployer') {
 step_name = "#{project.org}-#{project.name}"
 step_role_name =  "#{step_name}-step-function-role"
 lambda_role_name = "#{step_name}-lambda-role"
+lambda_assumed_role_name = "#{step_name}-assumed"
 s3_bucket_name = "#{step_name}-#{env.account_id}"
 
 ########################################
@@ -103,7 +104,7 @@ project.resource("aws_sfn_state_machine", "sfn_state_machine") {
 }
 
 ########################################
-###         IAM  Role                ###
+###         IAM  Roles               ###
 ########################################
 
 lambda_role = project.resource('aws_iam_role', lambda_role_name) {
@@ -126,6 +127,8 @@ lambda_role = project.resource('aws_iam_role', lambda_role_name) {
   )
 }
 
+
+# Allow Lambda to assume all roles named *step-deployer-lambda
 project.resource('aws_iam_role_policy', lambda_role_name) {
   depends_on [lambda_role.terraform_name]
   name lambda_role_name
@@ -134,7 +137,12 @@ project.resource('aws_iam_role_policy', lambda_role_name) {
     {
       "Version": "2012-10-17",
       "Statement": [
-        # WRITE TO LOGS
+        {
+          "Sid": "",
+          "Effect": "Allow",
+          "Resource": "arn:aws:iam::*:role/coinbase-step-deployer-assumed",
+          "Action": "sts:AssumeRole"
+        },
         {
           "Effect": "Allow",
           "Action": [
@@ -167,8 +175,42 @@ project.resource('aws_iam_role_policy', lambda_role_name) {
             "arn:aws:s3:::#{s3_bucket_name}/*",
             "arn:aws:s3:::#{s3_bucket_name}"
           ]
-        },
-        # DEPLOY Methods
+        }
+      ]
+    }.to_json
+  )
+}
+
+# Assumed Role Policy: if you put this role in any account then you will be able to deploy there
+lambda_assumed_role = project.resource('aws_iam_role', lambda_assumed_role_name) {
+  depends_on [lambda_role.terraform_name]
+  name lambda_assumed_role_name
+  path "/"
+  assume_role_policy(
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect": "Allow",
+          "Principal": {
+            "AWS": "arn:aws:iam::#{env.account_id}:role/#{lambda_role_name}"
+          },
+          "Action": "sts:AssumeRole"
+        }
+      ]
+    }.to_json
+  )
+}
+
+project.resource('aws_iam_role_policy', lambda_assumed_role_name) {
+  depends_on [lambda_role.terraform_name, lambda_assumed_role.terraform_name]
+  name lambda_assumed_role_name
+  role lambda_assumed_role_name
+  policy(
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        # READ/DEPLOY Methods
         {
           "Effect": "Allow",
           "Action": [
@@ -176,7 +218,6 @@ project.resource('aws_iam_role_policy', lambda_role_name) {
             "states:DescribeStateMachine",
             "lambda:ListTags",
             "lambda:GetFunction",
-
             # WRITE
             "states:UpdateStateMachine",
             "lambda:UpdateFunctionCode",
@@ -207,7 +248,7 @@ lambda_function = project.resource("aws_lambda_function", step_name) {
 
   filename File.expand_path(File.dirname(__FILE__)) + '/empty_lambda.zip'
   handler "lambda"
-  memory_size 128
+  memory_size 256
   runtime "go1.x"
   timeout "30"
   publish "true"

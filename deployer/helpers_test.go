@@ -67,7 +67,7 @@ func createTestStateMachine(t *testing.T, awsc *mocks.MockAwsClientsStr) *machin
 }
 
 func assertNoLock(t *testing.T, awsc aws.AwsClients, release *Release) {
-	_, err := s3.Get(awsc.S3Client(), release.Bucket, release.LockPath())
+	_, err := s3.Get(awsc.S3Client(nil, nil, nil), release.Bucket, release.LockPath())
 	assert.Error(t, err) // Not found error
 	assert.IsType(t, &s3.NotFoundError{}, err)
 }

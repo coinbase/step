@@ -7,6 +7,11 @@ set -e
 ./scripts/build_lambda_zip
 
 go build && go install
-step deploy -lambda "coinbase-step-deployer" -step "coinbase-step-deployer" -states "$(step json)"
+step deploy \
+  -lambda "coinbase-step-deployer" \
+  -step "coinbase-step-deployer"   \
+  -states "$(step json)"           \
+  -project "coinbase/step-deployer"\
+  -config "development"
 
 rm lambda.zip

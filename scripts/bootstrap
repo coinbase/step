@@ -6,7 +6,12 @@ set -e
 ./scripts/build_lambda_zip
 
 go build && go install
-step bootstrap -lambda "coinbase-step-deployer" -step "coinbase-step-deployer" -states "$(step json)"
+step bootstrap                     \
+  -lambda "coinbase-step-deployer" \
+  -step "coinbase-step-deployer"   \
+  -states "$(step json)"           \
+  -project "coinbase/step-deployer"\
+  -config "development"
 
 rm lambda.zip
 

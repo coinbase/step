@@ -12,7 +12,7 @@ func Strp(s string) *string {
 
 func Strs(s *string) string {
 	if s == nil {
-		return "<nil>"
+		return ""
 	}
 	return *s
 }

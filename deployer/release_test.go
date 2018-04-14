@@ -25,9 +25,13 @@ func Test_Release_DeployStepFunction(t *testing.T) {
 
 func Test_Release_DeployLambda(t *testing.T) {
 	lambdaClient := &mocks.MockLambdaClient{}
-	r := MockRelease()
+	s3c := &mocks.MockS3Client{}
 
-	err := r.DeployLambda(lambdaClient)
+	r := MockRelease()
+	r.Bucket = to.Strp("bucket")
+	s3c.AddGetObject(*r.LambdaZipPath(), "", nil)
+
+	err := r.DeployLambda(lambdaClient, s3c)
 	assert.NoError(t, err)
 
 }

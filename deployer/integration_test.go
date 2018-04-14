@@ -39,8 +39,20 @@ func Test_DeployHandler_Execution_Works(t *testing.T) {
 	}, state_machine.ExecutionPath())
 }
 
-// TODO cannot overriwte UUID
-// TODO cannot overrwite ReleaseSHA256
+func Test_DeployHandler_Execution_NoUUIDorSHA_Override(t *testing.T) {
+	release := MockRelease()
+	release.UUID = to.Strp("badString")
+	release.ReleaseSHA256 = "badString"
+
+	awsc := MockAwsClients(release)
+	state_machine := createTestStateMachine(t, awsc)
+
+	output, err := state_machine.ExecuteToMap(release)
+	assert.NoError(t, err)
+	assert.Equal(t, output["success"], true)
+	assert.NotEqual(t, output["uuid"], "badString")
+	assert.NotEqual(t, output["release_sha256"], "badString")
+}
 
 /////////
 // UNHAPPY PATH :(

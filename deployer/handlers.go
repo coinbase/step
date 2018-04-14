@@ -50,11 +50,17 @@ type DeployLambdaError struct {
 // HANDLERS
 ////////////
 
+var assumed_role = to.Strp("coinbase-step-deployer-assumed")
+
 func ValidateHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
-		region, account := to.AwsRegionAccountFromContext(ctx)
+		// Override any attributes set by the client
+		release.ReleaseSHA256 = to.SHA256Struct(release)
+		release.UUID = nil // Will be set later
+		release.Success = to.Boolp(false)
 
-		release.SetDefaults(&region, &account) // Fill in all the blank Attributes
+		region, account_id := to.AwsRegionAccountFromContext(ctx)
+		release.SetDefaults(&region, &account_id) // Fill in all the blank Attributes
 
 		// Validate the attributes for the release
 		if err := release.ValidateAttributes(); err != nil {
@@ -68,7 +74,7 @@ func ValidateHandler(awsc aws.AwsClients) interface{} {
 func LockHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
 		// First Thing is to grab the Lock
-		grabbed, err := release.GrabLock(awsc.S3Client())
+		grabbed, err := release.GrabLock(awsc.S3Client(nil, nil, nil))
 
 		// Check grabbed first because there are errors that can be thrown before anything is created
 		if !grabbed {
@@ -86,10 +92,10 @@ func LockHandler(awsc aws.AwsClients) interface{} {
 func ValidateResourcesHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
 		// Validate the Resources for the release
-		if err := release.ValidateResources(awsc.LambdaClient(), awsc.SFNClient(), awsc.S3Client()); err != nil {
-			release.ReleaseLock(awsc.S3Client())
+		if err := release.ValidateResources(awsc.LambdaClient(release.AwsRegion, release.AwsAccountID, assumed_role), awsc.SFNClient(release.AwsRegion, release.AwsAccountID, assumed_role), awsc.S3Client(nil, nil, nil)); err != nil {
 			return nil, &BadReleaseError{&ErrorWrapper{err}}
 		}
+
 		return release, nil
 	}
 }
@@ -98,16 +104,16 @@ func DeployHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
 
 		// Update Step Function first because State Machine if it fails we can recover
-		if err := release.DeployStepFunction(awsc.SFNClient()); err != nil {
+		if err := release.DeployStepFunction(awsc.SFNClient(release.AwsRegion, release.AwsAccountID, assumed_role)); err != nil {
 			return nil, &DeploySFNError{&ErrorWrapper{err}}
 		}
 
-		if err := release.DeployLambda(awsc.LambdaClient()); err != nil {
+		if err := release.DeployLambda(awsc.LambdaClient(release.AwsRegion, release.AwsAccountID, assumed_role), awsc.S3Client(nil, nil, nil)); err != nil {
 			return nil, &DeployLambdaError{&ErrorWrapper{err}}
 		}
 
 		release.Success = to.Boolp(true)
-		release.ReleaseLock(awsc.S3Client())
+		release.ReleaseLock(awsc.S3Client(nil, nil, nil))
 
 		return release, nil
 	}
@@ -115,7 +121,8 @@ func DeployHandler(awsc aws.AwsClients) interface{} {
 
 func ReleaseLockFailureHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
-		if err := release.ReleaseLock(awsc.S3Client()); err != nil {
+
+		if err := release.ReleaseLock(awsc.S3Client(nil, nil, nil)); err != nil {
 			return nil, &LockError{&ErrorWrapper{err}}
 		}
 

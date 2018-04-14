@@ -11,18 +11,18 @@ import (
 )
 
 // Deploy takes release information and Calls the Step Deployer to deploy the release
-func Deploy(states *string, lambda *string, step *string, bucket *string, zip_file_path *string, deployer_arn *string) error {
-	awsc := aws.CreateAwsClients()
+func Deploy(release *deployer.Release, zip_file_path *string, deployer_arn *string) error {
+	awsc := &aws.AwsClientsStr{}
 
 	fmt.Println("Preparing Release Bundle")
-	release, err := PrepareReleaseBundle(awsc, states, lambda, step, bucket, zip_file_path)
+	err := PrepareReleaseBundle(awsc, release, zip_file_path)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("Preparing Deploy")
 	fmt.Println(to.PrettyJSONStr(release))
-	err = sendDeployToDeployer(awsc.SFNClient(), release.ReleaseId, release, deployer_arn)
+	err = sendDeployToDeployer(awsc.SFNClient(nil, nil, nil), release.ReleaseId, release, deployer_arn)
 	if err != nil {
 		return err
 	}

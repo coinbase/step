@@ -24,7 +24,7 @@ func StateMachine() (*machine.StateMachine, error) {
         "Catch": [
           {
             "Comment": "Bad Release or Error GoTo end",
-            "ErrorEquals": ["BadReleaseError", "UnmarshalError"],
+            "ErrorEquals": ["BadReleaseError", "UnmarshalError", "PanicError"],
             "ResultPath": "$.error",
             "Next": "FailureClean"
           }
@@ -49,7 +49,7 @@ func StateMachine() (*machine.StateMachine, error) {
           },
           {
             "Comment": "Try Release Lock Then Fail",
-            "ErrorEquals": ["LockError"],
+            "ErrorEquals": ["LockError", "PanicError"],
             "ResultPath": "$.error",
             "Next": "ReleaseLockFailureFn"
           }
@@ -68,7 +68,7 @@ func StateMachine() (*machine.StateMachine, error) {
         "Catch": [
           {
             "Comment": "Try Release Lock Then Fail",
-            "ErrorEquals": ["BadReleaseError"],
+            "ErrorEquals": ["BadReleaseError", "PanicError"],
             "ResultPath": "$.error",
             "Next": "ReleaseLockFailureFn"
           }
@@ -93,7 +93,7 @@ func StateMachine() (*machine.StateMachine, error) {
           },
           {
             "Comment": "Unsure of State, Leave Lock and Fail",
-            "ErrorEquals": ["DeployLambdaError"],
+            "ErrorEquals": ["DeployLambdaError", "PanicError"],
             "ResultPath": "$.error",
             "Next": "FailureDirty"
           }
@@ -116,7 +116,7 @@ func StateMachine() (*machine.StateMachine, error) {
           "IntervalSeconds": 30
         }],
         "Catch": [{
-          "ErrorEquals": ["LockError"],
+          "ErrorEquals": ["LockError", "PanicError"],
           "ResultPath": "$.error",
           "Next": "FailureDirty"
         }]
@@ -145,8 +145,7 @@ func StateMachineWithTaskHandlers() (*machine.StateMachine, error) {
 		return nil, err
 	}
 
-	awsc := aws.CreateAwsClients()
-	AddStateMachineHandlers(state_machine, awsc)
+	AddStateMachineHandlers(state_machine, &aws.AwsClientsStr{})
 
 	return state_machine, nil
 }

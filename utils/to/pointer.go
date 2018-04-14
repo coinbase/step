@@ -12,7 +12,7 @@ func Strp(s string) *string {
 
 func Strs(s *string) string {
 	if s == nil {
-		return "<nil>"
+		return ""
 	}
 	return *s
 }
@@ -34,6 +34,10 @@ func Float64p(s float64) *float64 {
 }
 
 func Boolp(s bool) *bool {
+	return &s
+}
+
+func ABytep(s []byte) *[]byte {
 	return &s
 }
 

@@ -49,7 +49,7 @@ func PrepareReleaseBundle(awsc aws.AwsClients, release *deployer.Release, zip_fi
 		return err
 	}
 
-	// Uploading the SHA of the
+	// Uploading the Release to S3 to match SHAs
 	if err := s3.PutStruct(awsc.S3Client(nil, nil, nil), release.Bucket, release.ReleasePath(), release); err != nil {
 		return err
 	}

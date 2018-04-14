@@ -2,7 +2,7 @@ package client
 
 import (
 	"fmt"
-	"os"
+	"io/ioutil"
 
 	"github.com/coinbase/step/aws"
 	"github.com/coinbase/step/deployer"
@@ -19,7 +19,7 @@ func Bootstrap(release *deployer.Release, zip_file_path *string) error {
 		return err
 	}
 
-	bts, err := fileBytes(zip_file_path)
+	bts, err := ioutil.ReadFile(*zip_file_path)
 	if err != nil {
 		return err
 	}
@@ -34,25 +34,11 @@ func Bootstrap(release *deployer.Release, zip_file_path *string) error {
 
 	fmt.Println("Deploying Lambda Function")
 
-	err = release.DeployLambdaCode(awsc.LambdaClient(nil, nil, nil), bts)
+	err = release.DeployLambdaCode(awsc.LambdaClient(nil, nil, nil), &bts)
 	if err != nil {
 		return err
 	}
 
 	fmt.Println("Success")
 	return nil
-}
-
-func fileBytes(file_path *string) (*[]byte, error) {
-	file, err := os.Open(*file_path)
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-
-	fileInfo, _ := file.Stat()
-	var size int64 = fileInfo.Size()
-	buffer := make([]byte, size)
-	file.Read(buffer)
-	return &buffer, nil
 }

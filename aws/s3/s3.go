@@ -6,7 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"os"
+	"io/ioutil"
 	"strings"
 	"time"
 
@@ -180,23 +180,17 @@ func BucketExists(s3c aws.S3API, bucket *string) error {
 // PutFile uploads a file to S3
 func PutFile(s3c aws.S3API, file_path *string, bucket *string, s3_file_path *string) error {
 	// Open the file
-	file, err := os.Open(*file_path)
+	bts, err := ioutil.ReadFile(*file_path)
 	if err != nil {
 		return err
 	}
-	defer file.Close()
-
-	fileInfo, _ := file.Stat()
-	var size int64 = fileInfo.Size()
-	buffer := make([]byte, size)
-	file.Read(buffer)
 
 	_, err = s3c.PutObject(&s3.PutObjectInput{
 		Bucket:        bucket,
 		Key:           s3_file_path,
-		Body:          bytes.NewReader(buffer),
+		Body:          bytes.NewReader(bts),
 		ACL:           to.Strp("private"),
-		ContentLength: to.Int64p(size),
+		ContentLength: to.Int64p(int64(len(bts))),
 		ContentType:   to.Strp("application/zip"),
 	})
 

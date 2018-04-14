@@ -32,7 +32,7 @@ func PrepareRelease(release *deployer.Release, zip_file_path *string) error {
 	return release.ValidateClientAttributes()
 }
 
-// PrepareReleaseDeploy builds and uploads necessary info for a deploy
+// PrepareReleaseBundle builds and uploads necessary info for a deploy
 func PrepareReleaseBundle(awsc aws.AwsClients, release *deployer.Release, zip_file_path *string) error {
 	if err := PrepareRelease(release, zip_file_path); err != nil {
 		return err

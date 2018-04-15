@@ -1,10 +1,7 @@
 package aws
 
 import (
-	"fmt"
-
 	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
@@ -12,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
-	"github.com/coinbase/step/utils/to"
 )
 
 ////////////
@@ -42,45 +38,42 @@ type AwsClientsStr struct {
 	sfnClient    SFNAPI
 }
 
-func (awsc *AwsClientsStr) getSession() *session.Session {
-	if awsc.session != nil {
-		return awsc.session
-	}
-	awsc.session = session.Must(session.NewSession())
+func (awsc *AwsClientsStr) GetSession() *session.Session {
 	return awsc.session
 }
 
-func (awsc *AwsClientsStr) getConfig(region *string, account_id *string, role *string) *aws.Config {
-	if account_id == nil || region == nil || role == nil {
+func (awsc *AwsClientsStr) SetSession(sess *session.Session) {
+	awsc.session = sess
+}
+
+func (awsc *AwsClientsStr) GetConfig(key string) *aws.Config {
+	if awsc.configs == nil {
 		return nil
 	}
 
-	if awsc.configs == nil {
-		awsc.configs = map[string]*aws.Config{}
-	}
-
-	key := fmt.Sprintf("%v--::--%v--::--%v", *region, *account_id, *role)
 	config, ok := awsc.configs[key]
 	if ok && config != nil {
 		return config
 	}
 
-	arn := to.RoleArn(account_id, role)
-	creds := stscreds.NewCredentials(awsc.session, *arn)
-	config = aws.NewConfig().WithCredentials(creds).WithRegion(*region)
+	return nil
+}
 
+func (awsc *AwsClientsStr) SetConfig(key string, config *aws.Config) {
+	if awsc.configs == nil {
+		awsc.configs = map[string]*aws.Config{}
+	}
 	awsc.configs[key] = config
-	return config
 }
 
 func (awsc *AwsClientsStr) S3Client(region *string, account_id *string, role *string) S3API {
-	return s3.New(awsc.getSession(), awsc.getConfig(region, account_id, role))
+	return s3.New(Session(awsc), Config(awsc, region, account_id, role))
 }
 
 func (awsc *AwsClientsStr) LambdaClient(region *string, account_id *string, role *string) LambdaAPI {
-	return lambda.New(awsc.getSession(), awsc.getConfig(region, account_id, role))
+	return lambda.New(Session(awsc), Config(awsc, region, account_id, role))
 }
 
 func (awsc *AwsClientsStr) SFNClient(region *string, account_id *string, role *string) SFNAPI {
-	return sfn.New(awsc.getSession(), awsc.getConfig(region, account_id, role))
+	return sfn.New(Session(awsc), Config(awsc, region, account_id, role))
 }

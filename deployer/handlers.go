@@ -59,8 +59,7 @@ func ValidateHandler(awsc aws.AwsClients) interface{} {
 		release.UUID = nil // Will be set later
 		release.Success = to.Boolp(false)
 
-		region, account_id := to.AwsRegionAccountFromContext(ctx)
-		release.SetDefaults(&region, &account_id) // Fill in all the blank Attributes
+		release.SetDefaults(to.AwsRegionAccountFromContext(ctx)) // Fill in all the blank Attributes
 
 		// Validate the attributes for the release
 		if err := release.ValidateAttributes(); err != nil {

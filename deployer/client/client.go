@@ -1,6 +1,8 @@
 package client
 
 import (
+	"time"
+
 	"github.com/coinbase/step/aws"
 	"github.com/coinbase/step/aws/s3"
 	"github.com/coinbase/step/deployer"
@@ -48,6 +50,9 @@ func PrepareReleaseBundle(awsc aws.AwsClients, release *deployer.Release, zip_fi
 	if err != nil {
 		return err
 	}
+
+	// reset CreateAt because it can take a while to upload the lambda
+	release.CreatedAt = to.Timep(time.Now())
 
 	// Uploading the Release to S3 to match SHAs
 	if err := s3.PutStruct(awsc.S3Client(nil, nil, nil), release.Bucket, release.ReleasePath(), release); err != nil {

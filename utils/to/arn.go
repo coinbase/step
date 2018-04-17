@@ -40,19 +40,19 @@ func ArnPath(arn string) string {
 	}
 }
 
-func AwsRegionAccountFromContext(ctx context.Context) (string, string) {
+func AwsRegionAccountFromContext(ctx context.Context) (*string, *string) {
 	lc, ok := lambdacontext.FromContext(ctx)
 	if !ok {
-		return "", ""
+		return nil, nil
 	}
 
 	if lc == nil {
-		return "", ""
+		return nil, nil
 	}
 
 	arn := lc.InvokedFunctionArn
 	region, account, _ := ArnRegionAccountResource(arn)
-	return region, account
+	return &region, &account
 }
 
 func ArnRegionAccountResource(arnstr string) (string, string, string) {

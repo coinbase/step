@@ -13,13 +13,14 @@ import (
 )
 
 func main() {
-	default_name := "coinbase-step-deployer"
-	region, account_id := to.RegionAccount()
-	def_lambda_arn := to.Strp("")
-	def_step_arn := to.Strp("")
-	if region != nil && account_id != nil {
-		def_lambda_arn = to.LambdaArn(region, account_id, &default_name)
-		def_step_arn = to.StepArn(region, account_id, &default_name)
+	defaultName := "coinbase-step-deployer"
+	region, accountID := to.RegionAccount()
+	defLambdaARN := to.Strp("")
+	defStepARN := to.Strp("")
+
+	if region != nil && accountID != nil {
+		defLambdaARN = to.LambdaArn(region, accountID, &defaultName)
+		defStepARN = to.StepArn(region, accountID, &defaultName)
 	}
 
 	// Step Subcommands
@@ -31,7 +32,7 @@ func main() {
 	deployCommand := flag.NewFlagSet("deploy", flag.ExitOnError)
 
 	// json args
-	jsonLambda := jsonCommand.String("lambda", *def_lambda_arn, "lambda name or arn to replace tasks Task.Resource")
+	jsonLambda := jsonCommand.String("lambda", *defLambdaARN, "lambda name or arn to replace tasks Task.Resource")
 
 	// exec args
 	execInput := execCommand.String("input", "{}", "Input JSON to execute")
@@ -52,7 +53,7 @@ func main() {
 	deployLambda := deployCommand.String("lambda", "", "lambda name or arn")
 	deployStep := deployCommand.String("step", "", "step function name or arn")
 	deployBucket := deployCommand.String("bucket", "", "s3 bucket to upload release to")
-	deployDeployer := deployCommand.String("deployer", *def_step_arn, "step function deployer name or arn")
+	deployDeployer := deployCommand.String("deployer", *defStepARN, "step function deployer name or arn")
 	deployZip := deployCommand.String("zip", "lambda.zip", "zip of lambda")
 	deployProject := deployCommand.String("project", "", "project name")
 	deployConfig := deployCommand.String("config", "", "config name")
@@ -89,8 +90,8 @@ func main() {
 
 	// Create the State machine
 	if jsonCommand.Parsed() {
-		region, account_id := to.RegionAccount()
-		jsonRun(to.LambdaArn(region, account_id, jsonLambda))
+		region, accountID := to.RegionAccount()
+		jsonRun(to.LambdaArn(region, accountID, jsonLambda))
 	} else if execCommand.Parsed() {
 		execRun(execInput)
 	} else if bootstrapCommand.Parsed() {
@@ -107,7 +108,7 @@ func main() {
 		bootstrapRun(r, bootstrapZip)
 
 	} else if deployCommand.Parsed() {
-		region, account_id := to.RegionAccountOrExit()
+		region, accountID := to.RegionAccountOrExit()
 		r := newRelease(
 			deployProject,
 			deployConfig,
@@ -118,7 +119,7 @@ func main() {
 			deployRegion,
 			deployAccount,
 		)
-		arn := to.StepArn(region, account_id, deployDeployer)
+		arn := to.StepArn(region, accountID, deployDeployer)
 		deployRun(r, deployZip, arn)
 	} else {
 		fmt.Println("ERROR: Command Line Not Parsed")
@@ -143,15 +144,15 @@ func bootstrapRun(release *deployer.Release, zip *string) {
 	}
 }
 
-func deployRun(release *deployer.Release, zip *string, deployer_arn *string) {
-	err := client.Deploy(release, zip, deployer_arn)
+func deployRun(release *deployer.Release, zip *string, deployerARN *string) {
+	err := client.Deploy(release, zip, deployerARN)
 	if err != nil {
 		fmt.Println("ERROR", err)
 		os.Exit(1)
 	}
 }
 
-func newRelease(project *string, config *string, lambda *string, step *string, bucket *string, states *string, region *string, account_id *string) *deployer.Release {
+func newRelease(project *string, config *string, lambda *string, step *string, bucket *string, states *string, region *string, accountID *string) *deployer.Release {
 	return &deployer.Release{
 		ReleaseId:        to.TimeUUID("release-"),
 		CreatedAt:        to.Timep(time.Now()),
@@ -162,6 +163,6 @@ func newRelease(project *string, config *string, lambda *string, step *string, b
 		Bucket:           bucket,
 		StateMachineJSON: states,
 		AwsRegion:        region,
-		AwsAccountID:     account_id,
+		AwsAccountID:     accountID,
 	}
 }

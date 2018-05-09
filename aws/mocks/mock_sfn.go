@@ -14,6 +14,7 @@ type MockSFNClient struct {
 	DescribeExecutionResp    *sfn.DescribeExecutionOutput
 	GetExecutionHistoryResp  *sfn.GetExecutionHistoryOutput
 	DescribeStateMachineResp *sfn.DescribeStateMachineOutput
+	ListExecutionsResp       *sfn.ListExecutionsOutput
 }
 
 func (m *MockSFNClient) init() {
@@ -32,6 +33,10 @@ func (m *MockSFNClient) init() {
 
 	if m.GetExecutionHistoryResp == nil {
 		m.GetExecutionHistoryResp = &sfn.GetExecutionHistoryOutput{Events: []*sfn.HistoryEvent{}}
+	}
+
+	if m.ListExecutionsResp == nil {
+		m.ListExecutionsResp = &sfn.ListExecutionsOutput{Executions: []*sfn.ExecutionListItem{}}
 	}
 }
 
@@ -58,4 +63,9 @@ func (m *MockSFNClient) GetExecutionHistory(in *sfn.GetExecutionHistoryInput) (*
 func (m *MockSFNClient) DescribeStateMachine(in *sfn.DescribeStateMachineInput) (*sfn.DescribeStateMachineOutput, error) {
 	m.init()
 	return m.DescribeStateMachineResp, nil
+}
+
+func (m *MockSFNClient) ListExecutions(in *sfn.ListExecutionsInput) (*sfn.ListExecutionsOutput, error) {
+	m.init()
+	return m.ListExecutionsResp, nil
 }

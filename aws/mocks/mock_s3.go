@@ -4,10 +4,12 @@ import (
 	"bytes"
 	"io/ioutil"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
 	"github.com/aws/aws-sdk-go/service/s3/s3iface"
+	"github.com/coinbase/step/utils/to"
 )
 
 // S3Client
@@ -51,7 +53,10 @@ func (m *MockS3Client) init() {
 }
 
 func MakeS3Resp(ret string) *s3.GetObjectOutput {
-	return &s3.GetObjectOutput{Body: ioutil.NopCloser(strings.NewReader(ret))}
+	return &s3.GetObjectOutput{
+		Body:         ioutil.NopCloser(strings.NewReader(ret)),
+		LastModified: to.Timep(time.Now()),
+	}
 }
 
 func AWSS3NotFoundError() error {

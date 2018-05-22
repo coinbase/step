@@ -16,8 +16,11 @@ COPY . .
 
 RUN go build && go install
 
-# Use to deploy Lambda
+# builds lambda.zip
 RUN ./scripts/build_lambda_zip
-RUN step json -lambda "%lambda%" > state_machine.json
+RUN shasum -a 256 lambda.zip | awk '{print $1}' > lambda.zip.sha256
+
+RUN mv lambda.zip.sha256 lambda.zip /
+RUN step json -lambda "%lambda%" > /state_machine.json
 
 CMD ["step"]

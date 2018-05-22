@@ -1,4 +1,5 @@
 deploy:
-  engine: StepDeployer
+  engine: Step
 secure:
   required_reviews: 1
+  upstream_repository: coinbase/step

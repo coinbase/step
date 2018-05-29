@@ -38,6 +38,7 @@ func StartExecutionRaw(sfnc sfniface.SFNAPI, arn *string, name *string, input_js
 
 	return &Execution{ExecutionArn: out.ExecutionArn, StartDate: out.StartDate}, nil
 }
+
 func FindExecution(sfnc sfniface.SFNAPI, arn *string, name_prefix string) (*Execution, error) {
 	// TODO search through pages for first match
 	out, err := sfnc.ListExecutions(&sfn.ListExecutionsInput{

@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/sfn"
+	"github.com/coinbase/step/machine"
 	"github.com/coinbase/step/utils/to"
 	"github.com/stretchr/testify/assert"
 )
@@ -27,14 +28,14 @@ func Test_DeployHandler_Execution_Works(t *testing.T) {
 
 	assertNoLock(t, awsc, release)
 	assert.Equal(t, []string{
-		"ValidateFn",
 		"Validate",
-		"LockFn",
+		machine.TaskFnName("Validate"),
 		"Lock",
-		"ValidateResourcesFn",
+		machine.TaskFnName("Lock"),
 		"ValidateResources",
-		"DeployFn",
+		machine.TaskFnName("ValidateResources"),
 		"Deploy",
+		machine.TaskFnName("Deploy"),
 		"Success",
 	}, state_machine.ExecutionPath())
 }
@@ -71,8 +72,8 @@ func Test_DeployHandler_Execution_Errors_BadInput(t *testing.T) {
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
-		"ValidateFn",
 		"Validate",
+		machine.TaskFnName("Validate"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -93,8 +94,8 @@ func Test_DeployHandler_Execution_Errors_Release(t *testing.T) {
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
-		"ValidateFn",
 		"Validate",
+		machine.TaskFnName("Validate"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -115,8 +116,8 @@ func Test_DeployHandler_Execution_Errors_CreatedAt(t *testing.T) {
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
-		"ValidateFn",
 		"Validate",
+		machine.TaskFnName("Validate"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -138,12 +139,12 @@ func Test_DeployHandler_Execution_Errors_LockError(t *testing.T) {
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
-		"ValidateFn",
 		"Validate",
-		"LockFn",
+		machine.TaskFnName("Validate"),
 		"Lock",
-		"ReleaseLockFailureFn",
+		machine.TaskFnName("Lock"),
 		"ReleaseLockFailure",
+		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -163,10 +164,10 @@ func Test_DeployHandler_Execution_Errors_LockExistsError(t *testing.T) {
 	assert.Regexp(t, "Lock Already Exists", state_machine.LastOutput())
 
 	assert.Equal(t, []string{
-		"ValidateFn",
 		"Validate",
-		"LockFn",
+		machine.TaskFnName("Validate"),
 		"Lock",
+		machine.TaskFnName("Lock"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -188,14 +189,14 @@ func Test_DeployHandler_Execution_Errors_WrongLambdaTags(t *testing.T) {
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
-		"ValidateFn",
 		"Validate",
-		"LockFn",
+		machine.TaskFnName("Validate"),
 		"Lock",
-		"ValidateResourcesFn",
+		machine.TaskFnName("Lock"),
 		"ValidateResources",
-		"ReleaseLockFailureFn",
+		machine.TaskFnName("ValidateResources"),
 		"ReleaseLockFailure",
+		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -216,14 +217,14 @@ func Test_DeployHandler_Execution_Errors_WrongSFNPath(t *testing.T) {
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
-		"ValidateFn",
 		"Validate",
-		"LockFn",
+		machine.TaskFnName("Validate"),
 		"Lock",
-		"ValidateResourcesFn",
+		machine.TaskFnName("Lock"),
 		"ValidateResources",
-		"ReleaseLockFailureFn",
+		machine.TaskFnName("ValidateResources"),
 		"ReleaseLockFailure",
+		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -242,14 +243,14 @@ func Test_DeployHandler_Execution_Errors_BadLambdaSHA(t *testing.T) {
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
-		"ValidateFn",
 		"Validate",
-		"LockFn",
+		machine.TaskFnName("Validate"),
 		"Lock",
-		"ValidateResourcesFn",
+		machine.TaskFnName("Lock"),
 		"ValidateResources",
-		"ReleaseLockFailureFn",
+		machine.TaskFnName("ValidateResources"),
 		"ReleaseLockFailure",
+		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -268,14 +269,14 @@ func Test_DeployHandler_Execution_Errors_BadReleasePath(t *testing.T) {
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
-		"ValidateFn",
 		"Validate",
-		"LockFn",
+		machine.TaskFnName("Validate"),
 		"Lock",
-		"ValidateResourcesFn",
+		machine.TaskFnName("Lock"),
 		"ValidateResources",
-		"ReleaseLockFailureFn",
+		machine.TaskFnName("ValidateResources"),
 		"ReleaseLockFailure",
+		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -294,14 +295,14 @@ func Test_DeployHandler_Execution_Errors_WrongReleasePath(t *testing.T) {
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
-		"ValidateFn",
 		"Validate",
-		"LockFn",
+		machine.TaskFnName("Validate"),
 		"Lock",
-		"ValidateResourcesFn",
+		machine.TaskFnName("Lock"),
 		"ValidateResources",
-		"ReleaseLockFailureFn",
+		machine.TaskFnName("ValidateResources"),
 		"ReleaseLockFailure",
+		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -321,14 +322,14 @@ func Test_DeployHandler_Execution_Errors_DifferentReleaseSHA(t *testing.T) {
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
-		"ValidateFn",
 		"Validate",
-		"LockFn",
+		machine.TaskFnName("Validate"),
 		"Lock",
-		"ValidateResourcesFn",
+		machine.TaskFnName("Lock"),
 		"ValidateResources",
-		"ReleaseLockFailureFn",
+		machine.TaskFnName("ValidateResources"),
 		"ReleaseLockFailure",
+		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -349,16 +350,16 @@ func Test_DeployHandler_Execution_Errors_DeploySFNError(t *testing.T) {
 	assert.Regexp(t, "AWSSFNError", state_machine.LastOutput())
 
 	assert.Equal(t, []string{
-		"ValidateFn",
 		"Validate",
-		"LockFn",
+		machine.TaskFnName("Validate"),
 		"Lock",
-		"ValidateResourcesFn",
+		machine.TaskFnName("Lock"),
 		"ValidateResources",
-		"DeployFn",
+		machine.TaskFnName("ValidateResources"),
 		"Deploy",
-		"ReleaseLockFailureFn",
+		machine.TaskFnName("Deploy"),
 		"ReleaseLockFailure",
+		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -377,14 +378,14 @@ func Test_DeployHandler_Execution_Errors_DeployLambdaError(t *testing.T) {
 	assert.Regexp(t, "AWSLambdaError", state_machine.LastOutput())
 
 	assert.Equal(t, []string{
-		"ValidateFn",
 		"Validate",
-		"LockFn",
+		machine.TaskFnName("Validate"),
 		"Lock",
-		"ValidateResourcesFn",
+		machine.TaskFnName("Lock"),
 		"ValidateResources",
-		"DeployFn",
+		machine.TaskFnName("ValidateResources"),
 		"Deploy",
+		machine.TaskFnName("Deploy"),
 		"FailureDirty",
 	}, state_machine.ExecutionPath())
 }

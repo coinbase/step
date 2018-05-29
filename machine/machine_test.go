@@ -79,7 +79,7 @@ func Test_Machine_NoTaskShouldError(t *testing.T) {
 
 	_, err := executeJSON(json, make(map[string]interface{}), t)
 	assert.Error(t, err)
-	assert.Equal(t, err.Error(), "TaskError(start): $.Task input incorrect with <nil>")
+	assert.Equal(t, err.Error(), "TaskError(start): $.Task input is nil")
 }
 
 func Test_Machine_TaskFunctions(t *testing.T) {

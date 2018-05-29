@@ -1,0 +1,32 @@
+{
+  "Comment": "Contrived Valid Example that should have all State types",
+  "StartAt": "Pass",
+  "States": {
+    "TaskFn": {
+      "Type": "TaskFn",
+      "Resource": "asd",
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "CustomError1",
+            "CustomError2"
+          ],
+          "ResultPath": "$.asd",
+          "Next": "Pass"
+        }
+      ],
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "CustomError1",
+            "CustomError2"
+          ],
+          "IntervalSeconds": 3,
+          "MaxAttempts": 10,
+          "BackoffRate": 2.5
+        }
+      ],
+      "End": true
+    }
+  }
+}

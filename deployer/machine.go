@@ -9,18 +9,12 @@ import (
 func StateMachine() (*machine.StateMachine, error) {
 	return machine.FromJSON([]byte(`{
     "Comment": "Step Function Deployer",
-    "StartAt": "ValidateFn",
+    "StartAt": "Validate",
     "States": {
-      "ValidateFn": {
-        "Type": "Pass",
-        "Result": "Validate",
-        "ResultPath": "$.Task",
-        "Next": "Validate"
-      },
       "Validate": {
-        "Type": "Task",
+        "Type": "TaskFn",
         "Comment": "Validate and Set Defaults",
-        "Next": "LockFn",
+        "Next": "Lock",
         "Catch": [
           {
             "Comment": "Bad Release or Error GoTo end",
@@ -30,16 +24,10 @@ func StateMachine() (*machine.StateMachine, error) {
           }
         ]
       },
-      "LockFn": {
-        "Type": "Pass",
-        "Result": "Lock",
-        "ResultPath": "$.Task",
-        "Next": "Lock"
-      },
       "Lock": {
-        "Type": "Task",
+        "Type": "TaskFn",
         "Comment": "Grab Lock",
-        "Next": "ValidateResourcesFn",
+        "Next": "ValidateResources",
         "Catch": [
           {
             "Comment": "Something else is deploying",
@@ -51,37 +39,25 @@ func StateMachine() (*machine.StateMachine, error) {
             "Comment": "Try Release Lock Then Fail",
             "ErrorEquals": ["LockError", "PanicError"],
             "ResultPath": "$.error",
-            "Next": "ReleaseLockFailureFn"
+            "Next": "ReleaseLockFailure"
           }
         ]
       },
-      "ValidateResourcesFn": {
-        "Type": "Pass",
-        "Result": "ValidateResources",
-        "ResultPath": "$.Task",
-        "Next": "ValidateResources"
-      },
       "ValidateResources": {
-        "Type": "Task",
+        "Type": "TaskFn",
         "Comment": "ValidateResources",
-        "Next": "DeployFn",
+        "Next": "Deploy",
         "Catch": [
           {
             "Comment": "Try Release Lock Then Fail",
             "ErrorEquals": ["BadReleaseError", "PanicError"],
             "ResultPath": "$.error",
-            "Next": "ReleaseLockFailureFn"
+            "Next": "ReleaseLockFailure"
           }
         ]
       },
-      "DeployFn": {
-        "Type": "Pass",
-        "Result": "Deploy",
-        "ResultPath": "$.Task",
-        "Next": "Deploy"
-      },
       "Deploy": {
-        "Type": "Task",
+        "Type": "TaskFn",
         "Comment": "Upload Step-Function and Lambda",
         "Next": "Success",
         "Catch": [
@@ -89,7 +65,7 @@ func StateMachine() (*machine.StateMachine, error) {
             "Comment": "Unsure of State, Leave Lock and Fail",
             "ErrorEquals": ["DeploySFNError"],
             "ResultPath": "$.error",
-            "Next": "ReleaseLockFailureFn"
+            "Next": "ReleaseLockFailure"
           },
           {
             "Comment": "Unsure of State, Leave Lock and Fail",
@@ -99,14 +75,8 @@ func StateMachine() (*machine.StateMachine, error) {
           }
         ]
       },
-      "ReleaseLockFailureFn": {
-        "Type": "Pass",
-        "Result": "ReleaseLockFailure",
-        "ResultPath": "$.Task",
-        "Next": "ReleaseLockFailure"
-      },
       "ReleaseLockFailure": {
-        "Type": "Task",
+        "Type": "TaskFn",
         "Comment": "Release the Lock and Fail",
         "Next": "FailureClean",
         "Retry": [ {
@@ -124,12 +94,12 @@ func StateMachine() (*machine.StateMachine, error) {
       "FailureClean": {
         "Comment": "Deploy Failed Cleanly",
         "Type": "Fail",
-        "Error": "FailureClean"
+        "Error": "NotifyError"
       },
       "FailureDirty": {
         "Comment": "Deploy Failed, Resources left in Bad State, ALERT!",
         "Type": "Fail",
-        "Error": "FailureDirty"
+        "Error": "AlertError"
       },
       "Success": {
         "Type": "Succeed"

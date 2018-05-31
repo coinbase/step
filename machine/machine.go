@@ -73,6 +73,21 @@ func (sm *StateMachine) ExecuteJSON(input *string) (*string, error) {
 }
 
 func (sm *StateMachine) ExecuteToMap(input interface{}) (map[string]interface{}, error) {
+	switch input.(type) {
+	case string:
+		var json_input map[string]interface{}
+		if err := json.Unmarshal([]byte(input.(string)), &json_input); err != nil {
+			return nil, err
+		}
+		input = json_input
+	case *string:
+		var json_input map[string]interface{}
+		if err := json.Unmarshal([]byte(*(input.(*string))), &json_input); err != nil {
+			return nil, err
+		}
+		input = json_input
+	}
+
 	output, err := sm.Execute(input)
 	switch output.(type) {
 	case map[string]interface{}:

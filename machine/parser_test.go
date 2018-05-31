@@ -3,6 +3,8 @@ package machine
 import (
 	"testing"
 
+	"github.com/coinbase/step/machine/state"
+	"github.com/coinbase/step/utils/to"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,6 +29,52 @@ func Test_Machine_Parser_FromJSON(t *testing.T) {
 	_, err := FromJSON(json)
 
 	assert.Equal(t, err, nil)
+}
+
+func Test_Parser_Expands_TaskFn(t *testing.T) {
+	json := []byte(`
+  {
+      "StartAt": "A",
+      "States": {
+        "A": {
+          "Type": "TaskFn",
+          "Next": "B"
+        },
+        "B": {
+          "Type": "TaskFn",
+          "End": true
+        }
+    }
+  }`)
+
+	sm, err := FromJSON(json)
+	assert.NoError(t, err)
+
+	// Names and Types
+	assert.Equal(t, len(sm.States), 4)
+	assert.Equal(t, *sm.States["A"].GetType(), "Pass")
+	assert.Equal(t, *sm.States[TaskFnName("A")].GetType(), "Task")
+
+	assert.Equal(t, *sm.States["B"].GetType(), "Pass")
+	assert.Equal(t, *sm.States[TaskFnName("B")].GetType(), "Task")
+
+	a_state := sm.States["A"].(*state.PassState)
+	atask_state := sm.States[TaskFnName("A")].(*state.TaskState)
+
+	b_state := sm.States["B"].(*state.PassState)
+	btask_state := sm.States[TaskFnName("B")].(*state.TaskState)
+
+	// ORDER
+	assert.Equal(t, *a_state.Next, TaskFnName("A"))
+	assert.Equal(t, *atask_state.Next, "B")
+	assert.Equal(t, *b_state.Next, TaskFnName("B"))
+	assert.Equal(t, *btask_state.End, true)
+
+	// Passing the right things
+	assert.Equal(t, a_state.Result.(string), "A")
+	path, err := to.PrettyJSON(a_state.ResultPath)
+	assert.NoError(t, err)
+	assert.Equal(t, path, `"$.Task"`)
 }
 
 func Test_Machine_Parser_FileNonexistantFile(t *testing.T) {
@@ -67,6 +115,13 @@ func Test_Machine_Parser_BasicPass(t *testing.T) {
 
 func Test_Machine_Parser_BasicChoice(t *testing.T) {
 	sm, err := ParseFile("../examples/basic_choice.json")
+
+	assert.Equal(t, err, nil)
+	assert.NoError(t, sm.Validate())
+}
+
+func Test_Machine_Parser_TaskFn(t *testing.T) {
+	sm, err := ParseFile("../examples/taskfn.json")
 
 	assert.Equal(t, err, nil)
 	assert.NoError(t, sm.Validate())

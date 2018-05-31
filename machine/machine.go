@@ -73,12 +73,40 @@ func (sm *StateMachine) ExecuteJSON(input *string) (*string, error) {
 }
 
 func (sm *StateMachine) ExecuteToMap(input interface{}) (map[string]interface{}, error) {
+	switch input.(type) {
+	case string:
+		var json_input map[string]interface{}
+		if err := json.Unmarshal([]byte(input.(string)), &json_input); err != nil {
+			return nil, err
+		}
+		input = json_input
+	case *string:
+		var json_input map[string]interface{}
+		if err := json.Unmarshal([]byte(*(input.(*string))), &json_input); err != nil {
+			return nil, err
+		}
+		input = json_input
+	}
+
 	output, err := sm.Execute(input)
 	switch output.(type) {
 	case map[string]interface{}:
 		return output.(map[string]interface{}), err
 	}
 	return nil, err
+}
+
+func (sm *StateMachine) FindTask(name string) (*state.TaskState, error) {
+	tasks := sm.Tasks()
+	task, ok := tasks[TaskFnName(name)]
+	if !ok {
+		task, ok = sm.Tasks()[name]
+		if !ok {
+			return nil, fmt.Errorf("Handler Error: Cannot Find Task %v or %v", name, TaskFnName(name))
+		}
+	}
+
+	return task, nil
 }
 
 func (sm *StateMachine) Tasks() map[string]*state.TaskState {
@@ -127,10 +155,11 @@ func (sm *StateMachine) SetDefaultHandler() {
 }
 
 func (sm *StateMachine) SetResourceFunction(task_name string, resource_fn interface{}) error {
-	task, ok := sm.Tasks()[task_name]
-	if !ok {
-		return fmt.Errorf("Handler Error: Cannot Find Task %v", task_name)
+	task, err := sm.FindTask(task_name)
+	if err != nil {
+		return err
 	}
+
 	task.SetResourceFunction(resource_fn)
 	return nil
 }
@@ -175,10 +204,19 @@ func validateInput(s state.State, input interface{}) error {
 	switch input.(type) {
 	case map[string]interface{}:
 		m := input.(map[string]interface{})
-		if m["Task"] == *s.Name() {
+		task, ok := m["Task"]
+		if !ok {
+			return &handler.TaskError{fmt.Sprintf("$.Task input is nil"), s.Name(), nil}
+		}
+
+		task_name := task.(string)
+		taskfn_name := TaskFnName(task_name)
+
+		if task_name == *s.Name() || taskfn_name == *s.Name() {
 			return nil
 		}
-		return &handler.TaskError{fmt.Sprintf("$.Task input incorrect with %v", m["Task"]), s.Name(), nil}
+		fmt.Println(input)
+		return &handler.TaskError{fmt.Sprintf("$.Task input doesn't equal %v or %v", task_name, taskfn_name), s.Name(), nil}
 	}
 	return &handler.TaskError{"Input wrong type", s.Name(), nil}
 }

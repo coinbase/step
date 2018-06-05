@@ -11,6 +11,8 @@ bundle install
 ./scripts/geo apply resources/step_deployer.rb
 ```
 
+We prefer to use AWS credentials exported via [assume-role](https://github.com/coinbase/assume-role) but any AWS access keys will do:
+
 ```bash
 # Use AWS Creds or assume-role
 ./scripts/bootstrap

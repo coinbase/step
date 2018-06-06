@@ -2,6 +2,7 @@ package deployer
 
 import (
 	"github.com/coinbase/step/aws"
+	"github.com/coinbase/step/handler"
 	"github.com/coinbase/step/machine"
 )
 
@@ -108,31 +109,35 @@ func StateMachine() (*machine.StateMachine, error) {
   }`))
 }
 
-func StateMachineWithTaskHandlers() (*machine.StateMachine, error) {
-	// ASSIGN THE TASK FUNCTIONS
-	state_machine, err := StateMachine()
+// StateMachineWithTaskHandlers returns
+func StateMachineWithTaskHandlers(tfs *handler.TaskFunctions) (*machine.StateMachine, error) {
+	stateMachine, err := StateMachine()
 	if err != nil {
 		return nil, err
 	}
 
-	AddStateMachineHandlers(state_machine, &aws.AwsClientsStr{})
+	for name, smhandler := range *tfs {
+		if err := stateMachine.SetResourceFunction(name, smhandler); err != nil {
+			return nil, err
+		}
 
-	return state_machine, nil
-}
-
-func AddStateMachineHandlers(state_machine *machine.StateMachine, awsc aws.AwsClients) {
-	state_machine.SetResourceFunction("Validate", ValidateHandler(awsc))
-	state_machine.SetResourceFunction("Lock", LockHandler(awsc))
-	state_machine.SetResourceFunction("ValidateResources", ValidateResourcesHandler(awsc))
-	state_machine.SetResourceFunction("Deploy", DeployHandler(awsc))
-	state_machine.SetResourceFunction("ReleaseLockFailure", ReleaseLockFailureHandler(awsc))
-}
-
-func StateMachineWithLambdaArn(lambdaArn *string) (*machine.StateMachine, error) {
-	state_machine, err := StateMachine()
-	if err != nil {
-		return nil, err
 	}
-	state_machine.SetResource(lambdaArn) // Add Lambda Arn to Tasks
-	return state_machine, nil
+
+	return stateMachine, nil
+}
+
+// TaskFunctions returns
+func TaskFunctions() *handler.TaskFunctions {
+	return CreateTaskFunctinons(&aws.AwsClientsStr{})
+}
+
+// CreateTaskFunctinons returns
+func CreateTaskFunctinons(awsc aws.AwsClients) *handler.TaskFunctions {
+	tm := handler.TaskFunctions{}
+	tm["Validate"] = ValidateHandler(awsc)
+	tm["Lock"] = LockHandler(awsc)
+	tm["ValidateResources"] = ValidateResourcesHandler(awsc)
+	tm["Deploy"] = DeployHandler(awsc)
+	tm["ReleaseLockFailure"] = ReleaseLockFailureHandler(awsc)
+	return &tm
 }

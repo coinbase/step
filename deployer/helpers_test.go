@@ -58,10 +58,8 @@ func MockAwsClients(r *Release) *mocks.MockAwsClientsStr {
 ////////
 
 func createTestStateMachine(t *testing.T, awsc *mocks.MockAwsClientsStr) *machine.StateMachine {
-	state_machine, err := StateMachine()
+	state_machine, err := StateMachineWithTaskHandlers(CreateTaskFunctinons(awsc))
 	assert.NoError(t, err)
-
-	AddStateMachineHandlers(state_machine, awsc)
 
 	return state_machine
 }

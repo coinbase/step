@@ -15,26 +15,17 @@ import (
 func main() {
 	default_name := "coinbase-step-deployer"
 	region, account_id := to.RegionAccount()
-	def_lambda_arn := to.Strp("")
 	def_step_arn := to.Strp("")
 	if region != nil && account_id != nil {
-		def_lambda_arn = to.LambdaArn(region, account_id, &default_name)
 		def_step_arn = to.StepArn(region, account_id, &default_name)
 	}
 
 	// Step Subcommands
 	jsonCommand := flag.NewFlagSet("json", flag.ExitOnError)
-	execCommand := flag.NewFlagSet("exec", flag.ExitOnError)
 
 	// Other Subcommands
 	bootstrapCommand := flag.NewFlagSet("bootstrap", flag.ExitOnError)
 	deployCommand := flag.NewFlagSet("deploy", flag.ExitOnError)
-
-	// json args
-	jsonLambda := jsonCommand.String("lambda", *def_lambda_arn, "lambda name or arn to replace tasks Task.Resource")
-
-	// exec args
-	execInput := execCommand.String("input", "{}", "Input JSON to execute")
 
 	// bootstrap args
 	bootstrapStates := bootstrapCommand.String("states", "{}", "State Machine JSON")
@@ -62,24 +53,20 @@ func main() {
 	// By Default Run Lambda Function
 	if len(os.Args) == 1 {
 		fmt.Println("Starting Lambda")
-		run.Lambda(deployer.StateMachineWithTaskHandlers())
+		run.LambdaTasks(deployer.TaskFunctions())
 	}
 
 	switch os.Args[1] {
 	case "json":
 		jsonCommand.Parse(os.Args[2:])
-	case "exec":
-		execCommand.Parse(os.Args[2:])
 	case "bootstrap":
 		bootstrapCommand.Parse(os.Args[2:])
 	case "deploy":
 		deployCommand.Parse(os.Args[2:])
 	default:
-		fmt.Println("Usage of step: step <json|exec|bootstrap|deploy> <args> (No args starts Lambda)")
+		fmt.Println("Usage of step: step <json|bootstrap|deploy> <args> (No args starts Lambda)")
 		fmt.Println("json")
 		jsonCommand.PrintDefaults()
-		fmt.Println("exec")
-		execCommand.PrintDefaults()
 		fmt.Println("bootstrap")
 		bootstrapCommand.PrintDefaults()
 		fmt.Println("deploy")
@@ -89,10 +76,7 @@ func main() {
 
 	// Create the State machine
 	if jsonCommand.Parsed() {
-		region, account_id := to.RegionAccount()
-		jsonRun(to.LambdaArn(region, account_id, jsonLambda))
-	} else if execCommand.Parsed() {
-		execRun(execInput)
+		jsonRun()
 	} else if bootstrapCommand.Parsed() {
 		r := newRelease(
 			bootstrapProject,
@@ -127,12 +111,8 @@ func main() {
 }
 
 // Print the state JSON for the step function
-func jsonRun(jsonLambda *string) {
-	run.JSON(deployer.StateMachineWithLambdaArn(jsonLambda))
-}
-
-func execRun(input *string) {
-	run.Exec(deployer.StateMachineWithTaskHandlers())(input)
+func jsonRun() {
+	run.JSON(deployer.StateMachine())
 }
 
 func bootstrapRun(release *deployer.Release, zip *string) {

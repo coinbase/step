@@ -41,7 +41,7 @@ func MockAwsClients(r *Release) *mocks.MockAwsClientsStr {
 	}
 
 	awsc.SFN.DescribeStateMachineResp = &sfn.DescribeStateMachineOutput{
-		RoleArn: to.Strp(fmt.Sprintf("arn:aws:iam::0000000000:role/step/%v/%v/role-name", *r.ProjectName, *r.ConfigName)),
+		RoleArn: to.Strp(fmt.Sprintf("arn:aws:iam::000000000000:role/step/%v/%v/role-name", *r.ProjectName, *r.ConfigName)),
 	}
 
 	lambda_zip_file_contents := "lambda_zip"
@@ -49,7 +49,14 @@ func MockAwsClients(r *Release) *mocks.MockAwsClientsStr {
 	r.LambdaSHA256 = to.Strp(to.SHA256Str(&lambda_zip_file_contents))
 
 	raw, _ := json.Marshal(r)
-	awsc.S3.AddGetObject(*r.ReleasePath(), string(raw), nil)
+
+	account_id := r.AwsAccountID
+	if account_id == nil {
+		account_id = to.Strp("000000000000")
+	}
+
+	awsc.S3.AddGetObject(fmt.Sprintf("%v/%v/%v/%v/release", *account_id, *r.ProjectName, *r.ConfigName, *r.ReleaseId), string(raw), nil)
+
 	return awsc
 }
 

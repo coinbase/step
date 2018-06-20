@@ -156,7 +156,7 @@ func (r *Release) ValidateLambdaFunctionTags(lambdac aws.LambdaAPI) error {
 	}
 
 	if project == nil || config == nil || deployer == nil {
-		return fmt.Errorf("Project, Config and or DeployWith tag on lambda is nil")
+		return fmt.Errorf("ProjectName, ConfigName and or DeployWith tag on lambda is nil")
 	}
 
 	if *r.ProjectName != *project {
@@ -334,7 +334,7 @@ func (release *Release) StepArn() *string {
 ///////
 
 func (release *Release) ReleasePath() *string {
-	s := fmt.Sprintf("%v/%v/%v/release", *release.ProjectName, *release.ConfigName, *release.ReleaseId)
+	s := fmt.Sprintf("%v/%v/%v/%v/release", *release.AwsAccountID, *release.ProjectName, *release.ConfigName, *release.ReleaseId)
 	return &s
 }
 

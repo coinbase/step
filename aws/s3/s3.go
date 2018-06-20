@@ -50,13 +50,17 @@ func s3Error(bucket *string, path *string, err error) error {
 
 // Get downloads content from S3
 func Get(s3c aws.S3API, bucket *string, path *string) (*[]byte, error) {
-	results, err := s3c.GetObject(&s3.GetObjectInput{
+	return get(s3c, &s3.GetObjectInput{
 		Bucket: bucket,
 		Key:    path,
 	})
+}
+
+func get(s3c aws.S3API, input *s3.GetObjectInput) (*[]byte, error) {
+	results, err := s3c.GetObject(input)
 
 	if err != nil {
-		return nil, s3Error(bucket, path, err)
+		return nil, s3Error(input.Bucket, input.Key, err)
 	}
 
 	defer results.Body.Close()
@@ -76,13 +80,35 @@ func Put(s3c aws.S3API, bucket *string, path *string, content *string) error {
 		return fmt.Errorf("Put content is nil")
 	}
 
-	_, err := s3c.PutObject(&s3.PutObjectInput{
-		Bucket:      bucket,
-		Key:         path,
-		Body:        strings.NewReader(*content),
-		ACL:         to.Strp("private"),
-		ContentType: to.Strp("application/json"),
+	return put(s3c, &s3.PutObjectInput{
+		Bucket: bucket,
+		Key:    path,
+		Body:   strings.NewReader(*content),
+		ACL:    to.Strp("private"),
 	})
+}
+
+func PutSecure(s3c aws.S3API, bucket *string, path *string, content *string, kmsKeyId *string) error {
+	if content == nil {
+		return fmt.Errorf("Put content is nil")
+	}
+
+	if kmsKeyId == nil {
+		return fmt.Errorf("KMSKeyID content is nil")
+	}
+
+	return put(s3c, &s3.PutObjectInput{
+		Bucket:               bucket,
+		Key:                  path,
+		Body:                 strings.NewReader(*content),
+		ACL:                  to.Strp("private"),
+		ServerSideEncryption: to.Strp("aws:kms"),
+		SSEKMSKeyId:          kmsKeyId,
+	})
+}
+
+func put(s3c aws.S3API, input *s3.PutObjectInput) error {
+	_, err := s3c.PutObject(input)
 
 	if err != nil {
 		return err
@@ -179,26 +205,37 @@ func BucketExists(s3c aws.S3API, bucket *string) error {
 
 // PutFile uploads a file to S3
 func PutFile(s3c aws.S3API, file_path *string, bucket *string, s3_file_path *string) error {
+	return putFile(s3c, file_path, &s3.PutObjectInput{
+		Bucket: bucket,
+		Key:    s3_file_path,
+		ACL:    to.Strp("private"),
+	})
+}
+
+func PutSecureFile(s3c aws.S3API, file_path *string, bucket *string, s3_file_path *string, kmsKeyId *string) error {
+	if kmsKeyId == nil {
+		return fmt.Errorf("KMSKeyID content is nil")
+	}
+
+	return putFile(s3c, file_path, &s3.PutObjectInput{
+		Bucket:               bucket,
+		Key:                  s3_file_path,
+		ACL:                  to.Strp("private"),
+		ServerSideEncryption: to.Strp("aws:kms"),
+		SSEKMSKeyId:          kmsKeyId,
+	})
+}
+
+func putFile(s3c aws.S3API, file_path *string, input *s3.PutObjectInput) error {
 	// Open the file
 	bts, err := ioutil.ReadFile(*file_path)
 	if err != nil {
 		return err
 	}
 
-	_, err = s3c.PutObject(&s3.PutObjectInput{
-		Bucket:        bucket,
-		Key:           s3_file_path,
-		Body:          bytes.NewReader(bts),
-		ACL:           to.Strp("private"),
-		ContentLength: to.Int64p(int64(len(bts))),
-		ContentType:   to.Strp("application/zip"),
-	})
+	input.SetBody(bytes.NewReader(bts))
 
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return put(s3c, input)
 }
 
 /////////

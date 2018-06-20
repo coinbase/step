@@ -22,6 +22,7 @@ func Test_DeployHandler_Execution_Works(t *testing.T) {
 	state_machine := createTestStateMachine(t, awsc)
 
 	output, err := state_machine.ExecuteToMap(release)
+
 	assert.NoError(t, err)
 	assert.Equal(t, output["success"], true)
 	assert.NotRegexp(t, "error", state_machine.LastOutput())
@@ -205,7 +206,7 @@ func Test_DeployHandler_Execution_Errors_WrongSFNPath(t *testing.T) {
 	release := MockRelease()
 	awsc := MockAwsClients(release)
 	awsc.SFN.DescribeStateMachineResp = &sfn.DescribeStateMachineOutput{
-		RoleArn: to.Strp("arn:aws:iam::0000000000:role/step/wrongproject/config/role-name"),
+		RoleArn: to.Strp("arn:aws:iam::000000000000:role/step/wrongproject/config/role-name"),
 	}
 
 	state_machine := createTestStateMachine(t, awsc)
@@ -257,6 +258,7 @@ func Test_DeployHandler_Execution_Errors_BadLambdaSHA(t *testing.T) {
 
 func Test_DeployHandler_Execution_Errors_BadReleasePath(t *testing.T) {
 	release := MockRelease()
+	release.AwsAccountID = to.Strp("0000000")
 	awsc := MockAwsClients(release)
 
 	awsc.S3.AddGetObject(*release.ReleasePath(), "bad_release", nil)
@@ -283,6 +285,7 @@ func Test_DeployHandler_Execution_Errors_BadReleasePath(t *testing.T) {
 
 func Test_DeployHandler_Execution_Errors_WrongReleasePath(t *testing.T) {
 	release := MockRelease()
+	release.AwsAccountID = to.Strp("0000000")
 	awsc := MockAwsClients(release)
 
 	awsc.S3.AddGetObject(*release.ReleasePath(), "{}", nil)

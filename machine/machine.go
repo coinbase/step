@@ -223,7 +223,7 @@ func validateInput(s state.State, input interface{}) error {
 
 func (sm *StateMachine) DefaultLambdaContext(lambda_name string) context.Context {
 	return lambdacontext.NewContext(context.Background(), &lambdacontext.LambdaContext{
-		InvokedFunctionArn: fmt.Sprintf("arn:aws:lambda:us-east-1:000000000:function:%v", lambda_name),
+		InvokedFunctionArn: fmt.Sprintf("arn:aws:lambda:us-east-1:000000000000:function:%v", lambda_name),
 	})
 }
 

@@ -66,6 +66,10 @@ func LockHandler(awsc aws.AwsClients) interface{} {
 
 		// Check grabbed first because there are errors that can be thrown before anything is created
 		if !grabbed {
+			if err != nil {
+				return nil, errors.LockExistsError{err.Error()}
+			}
+
 			return nil, errors.LockExistsError{"Lock Already Exists"}
 		}
 

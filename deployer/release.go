@@ -304,7 +304,7 @@ func (release *Release) GrabLock(s3c aws.S3API) (bool, error) {
 }
 
 func (release *Release) LockPath() *string {
-	s := fmt.Sprintf("%v/%v/lock", *release.ProjectName, *release.ConfigName)
+	s := fmt.Sprintf("%v/lock", *release.rootPath())
 	return &s
 }
 
@@ -313,7 +313,7 @@ func (release *Release) LockPath() *string {
 ///////
 
 func (release *Release) LambdaZipPath() *string {
-	s := fmt.Sprintf("%v/%v/%v/lambda.zip", *release.ProjectName, *release.ConfigName, *release.ReleaseId)
+	s := fmt.Sprintf("%v/lambda.zip", *release.releasePath())
 	return &s
 }
 
@@ -333,8 +333,18 @@ func (release *Release) StepArn() *string {
 // S3 Release
 ///////
 
+func (release *Release) rootPath() *string {
+	s := fmt.Sprintf("%v/%v/%v", *release.AwsAccountID, *release.ProjectName, *release.ConfigName)
+	return &s
+}
+
+func (release *Release) releasePath() *string {
+	s := fmt.Sprintf("%v/%v", *release.rootPath(), *release.ReleaseId)
+	return &s
+}
+
 func (release *Release) ReleasePath() *string {
-	s := fmt.Sprintf("%v/%v/%v/%v/release", *release.AwsAccountID, *release.ProjectName, *release.ConfigName, *release.ReleaseId)
+	s := fmt.Sprintf("%v/release", *release.releasePath())
 	return &s
 }
 

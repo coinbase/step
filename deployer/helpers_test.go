@@ -22,6 +22,7 @@ import (
 
 func MockRelease() *Release {
 	return &Release{
+		AwsAccountID:     to.Strp("00000000"),
 		ReleaseId:        to.Strp("release-1"),
 		ProjectName:      to.Strp("project"),
 		ConfigName:       to.Strp("development"),

@@ -184,21 +184,6 @@ func GetLastModified(s3c aws.S3API, bucket *string, path *string) (*time.Time, e
 	return results.LastModified, nil
 }
 
-// BucketExists returns an error if a bucket does not exist OR the user doesn't have permissions
-func BucketExists(s3c aws.S3API, bucket *string) error {
-	// The Bucket Exists and we have access
-	_, err := s3c.ListObjects(&s3.ListObjectsInput{
-		Bucket:  bucket,
-		MaxKeys: to.Int64p(2),
-	})
-
-	if err != nil {
-		return fmt.Errorf("Bucket Does not Exist or is unreachable")
-	}
-
-	return nil
-}
-
 /////////
 // File Helpers
 /////////

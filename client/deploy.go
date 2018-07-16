@@ -41,7 +41,7 @@ func sendDeployToDeployer(sfnc aws.SFNAPI, name *string, release *deployer.Relea
 
 	fmt.Printf("\nStarting Deploy")
 
-	exec.WaitForExecution(sfnc, 1, func(ed *execution.ExecutionDetails, sd *execution.StateDetails, err error) error {
+	exec.WaitForExecution(sfnc, 1, func(ed *execution.Execution, sd *execution.StateDetails, err error) error {
 		if err != nil {
 			return fmt.Errorf("Unexpected Error %v", err.Error())
 		}

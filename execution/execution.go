@@ -6,15 +6,22 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/aws/aws-sdk-go/service/sfn/sfniface"
+	"github.com/coinbase/step/aws"
 	"github.com/coinbase/step/utils/to"
 )
 
 type Execution struct {
-	ExecutionArn *string
-	StartDate    *time.Time
+	ExecutionArn    *string
+	Input           *string
+	Name            *string
+	Output          *string
+	StartDate       *time.Time
+	StateMachineArn *string
+	Status          *string
+	StopDate        *time.Time
 }
 
-type ExecutionWaiter func(*ExecutionDetails, *StateDetails, error) error
+type ExecutionWaiter func(*Execution, *StateDetails, error) error
 
 func StartExecution(sfnc sfniface.SFNAPI, arn *string, name *string, input interface{}) (*Execution, error) {
 	input_json, err := to.PrettyJSON(input)
@@ -37,6 +44,49 @@ func StartExecutionRaw(sfnc sfniface.SFNAPI, arn *string, name *string, input_js
 	}
 
 	return &Execution{ExecutionArn: out.ExecutionArn, StartDate: out.StartDate}, nil
+}
+
+// executions lists executions with an option to filter
+func ExecutionsAfter(sfnc aws.SFNAPI, arn *string, status *string, afterTime time.Time) ([]*Execution, error) {
+	allExecutions := []*Execution{}
+
+	pagefn := func(page *sfn.ListExecutionsOutput, lastPage bool) bool {
+		for _, exe := range page.Executions {
+			if exe.StartDate.Before(afterTime) {
+				// Break the pagination
+				return false
+			}
+
+			allExecutions = append(allExecutions, fromExectionListItem(exe))
+		}
+
+		return !lastPage
+	}
+
+	err := sfnc.ListExecutionsPages(&sfn.ListExecutionsInput{
+		MaxResults:      to.Int64p(100),
+		StateMachineArn: arn,
+		StatusFilter:    status,
+	}, pagefn)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return allExecutions, nil
+}
+
+func fromExectionListItem(e *sfn.ExecutionListItem) *Execution {
+	ed := Execution{}
+
+	ed.ExecutionArn = e.ExecutionArn
+	ed.Name = e.Name
+	ed.StartDate = e.StartDate
+	ed.StateMachineArn = e.StateMachineArn
+	ed.Status = e.Status
+	ed.StopDate = e.StopDate
+
+	return &ed
 }
 
 func FindExecution(sfnc sfniface.SFNAPI, arn *string, name_prefix string) (*Execution, error) {
@@ -65,10 +115,6 @@ func FindExecution(sfnc sfniface.SFNAPI, arn *string, name_prefix string) (*Exec
 	return nil, nil
 }
 
-type ExecutionDetails struct {
-	*sfn.DescribeExecutionOutput
-}
-
 type StateDetails struct {
 	LastStateName *string
 	LastTaskName  *string
@@ -76,15 +122,36 @@ type StateDetails struct {
 	Timestamp     *time.Time
 }
 
-func (e *Execution) getDetails(sfnc sfniface.SFNAPI) (*ExecutionDetails, *StateDetails, error) {
+func GetDetails(sfnc sfniface.SFNAPI, executionArn *string) (*Execution, *StateDetails, error) {
 	exec_out, err := sfnc.DescribeExecution(&sfn.DescribeExecutionInput{
-		ExecutionArn: e.ExecutionArn,
+		ExecutionArn: executionArn,
 	})
 
 	if err != nil {
 		return nil, nil, err
 	}
 
+	ed := Execution{
+		ExecutionArn:    exec_out.ExecutionArn,
+		Input:           exec_out.Input,
+		Name:            exec_out.Name,
+		Output:          exec_out.Output,
+		StartDate:       exec_out.StartDate,
+		StateMachineArn: exec_out.StateMachineArn,
+		Status:          exec_out.Status,
+		StopDate:        exec_out.StopDate,
+	}
+
+	sd, err := ed.GetStateDetails(sfnc)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return &ed, sd, nil
+}
+
+func (e *Execution) GetStateDetails(sfnc sfniface.SFNAPI) (*StateDetails, error) {
 	history_out, err := sfnc.GetExecutionHistory(&sfn.GetExecutionHistoryInput{
 		ExecutionArn: e.ExecutionArn,
 		ReverseOrder: to.Boolp(true),
@@ -92,7 +159,7 @@ func (e *Execution) getDetails(sfnc sfniface.SFNAPI) (*ExecutionDetails, *StateD
 	})
 
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	sd := StateDetails{}
@@ -125,14 +192,14 @@ func (e *Execution) getDetails(sfnc sfniface.SFNAPI) (*ExecutionDetails, *StateD
 		}
 	}
 
-	return &ExecutionDetails{exec_out}, &sd, nil
+	return &sd, nil
 }
 
 // WaitForExecution allows another application to wait for the execution to finish
 // and process output as it comes in for usability
 func (e *Execution) WaitForExecution(sfnc sfniface.SFNAPI, sleep int, fn ExecutionWaiter) {
 	for {
-		exec, state, err := e.getDetails(sfnc)
+		exec, state, err := GetDetails(sfnc, e.ExecutionArn)
 
 		err = fn(exec, state, err)
 

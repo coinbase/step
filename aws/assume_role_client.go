@@ -38,7 +38,7 @@ func Config(arc AssumeRoleClient, region *string, account_id *string, role *stri
 
 	arn := to.RoleArn(account_id, role)
 	creds := stscreds.NewCredentials(Session(arc), *arn)
-	config := aws.NewConfig().WithCredentials(creds).WithRegion(*region)
+	config := aws.NewConfig().WithCredentials(creds).WithRegion(*region).WithMaxRetries(10)
 
 	arc.SetConfig(key, config)
 	return config

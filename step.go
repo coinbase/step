@@ -6,8 +6,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/coinbase/step/client"
 	"github.com/coinbase/step/deployer"
-	"github.com/coinbase/step/deployer/client"
 	"github.com/coinbase/step/utils/run"
 	"github.com/coinbase/step/utils/to"
 )

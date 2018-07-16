@@ -29,7 +29,7 @@ func Test_Client_PrepareReleaseBundle(t *testing.T) {
 	err := PrepareReleaseBundle(
 		awsc,
 		release,
-		to.Strp("../../resources/empty_lambda.zip"), // Location to empty zip file
+		to.Strp("../resources/empty_lambda.zip"), // Location to empty zip file
 	)
 
 	assert.NoError(t, err)

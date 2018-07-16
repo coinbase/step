@@ -11,7 +11,7 @@ import (
 	"fmt"
 
 	"github.com/coinbase/step/aws"
-	"github.com/coinbase/step/utils/errors"
+	"github.com/coinbase/step/errors"
 	"github.com/coinbase/step/utils/to"
 )
 

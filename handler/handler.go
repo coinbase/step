@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"reflect"
 	"runtime/debug"
+
+	"github.com/coinbase/step/errors"
 )
 
 ///////////
@@ -199,34 +201,16 @@ func CreateHandler(tm *TaskFunctions) (func(context context.Context, input *RawM
 	return handler, nil
 }
 
-// ERRORS
-
-type PanicError struct {
-	err string
-}
-
-func (p PanicError) Error() string {
-	return p.err
-}
-
 func recoveryError(r interface{}) error {
 	switch x := r.(type) {
 	case string:
-		return PanicError{fmt.Sprintf("PanicError: %v", x)}
+		return errors.PanicError{x}
 	case error:
-		return PanicError{fmt.Sprintf("PanicError: %v", x.Error())}
+		return errors.PanicError{x.Error()}
 	default:
-		return PanicError{fmt.Sprintf("PanicError: Unknown panic %v", x)}
+		return errors.PanicError{fmt.Sprintf("Unknown %v", x)}
 	}
 
-}
-
-type UnmarshalError struct {
-	err string
-}
-
-func (p UnmarshalError) Error() string {
-	return p.err
 }
 
 // HANDLERS
@@ -245,7 +229,7 @@ func CallHandler(reflection TaskReflection, ctx context.Context, input []byte) (
 	event := reflect.New(reflection.EventType)
 
 	if err = json.Unmarshal(input, event.Interface()); err != nil {
-		return nil, UnmarshalError{err.Error()}
+		return nil, errors.UnmarshalError{err.Error()}
 	}
 
 	// Get Type of Function Input

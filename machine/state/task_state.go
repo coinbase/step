@@ -88,20 +88,12 @@ func (s *TaskState) Validate() error {
 		}
 	}
 
-	if s.Catch != nil {
-		for _, c := range s.Catch {
-			if err := catcherValid(c); err != nil {
-				return err
-			}
-		}
+	if err := catchValid(s.Catch); err != nil {
+		return err
 	}
 
-	if s.Retry != nil {
-		for _, r := range s.Retry {
-			if err := retrierValid(r); err != nil {
-				return err
-			}
-		}
+	if err := retryValid(s.Retry); err != nil {
+		return err
 	}
 
 	return nil

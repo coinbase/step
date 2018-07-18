@@ -45,10 +45,41 @@ func Test_TaskState_ValidateResource(t *testing.T) {
 	assert.NoError(t, state.Validate())
 }
 
+func Test_TaskState_Valid_ErrorEquals_StatesAll(t *testing.T) {
+	state := parseTaskState([]byte(`{
+		"Resource": "asd",
+		"Next": "Pass",
+		"Retry": [{ "ErrorEquals": ["States.ALL"] }]
+	}`), t)
+
+	assert.NoError(t, state.Validate())
+
+	state = parseTaskState([]byte(`{
+		"Resource": "asd",
+		"Next": "Pass",
+		"Retry": [{ "ErrorEquals": ["States.ALL", "NoMoreErrors"] }]
+	}`), t)
+	assert.Error(t, state.Validate())
+
+	state = parseTaskState([]byte(`{
+		"Resource": "asd",
+		"Next": "Pass",
+		"Retry": [{ "ErrorEquals": ["States.ALL"] }, { "ErrorEquals": ["NotLast"] }]
+	}`), t)
+
+	state = parseTaskState([]byte(`{
+		"Resource": "asd",
+		"Next": "Pass",
+		"Retry": [{ "ErrorEquals": ["States.NotRealError"] }]
+	}`), t)
+
+	assert.Error(t, state.Validate())
+}
+
 func Test_TaskState_ResourceFunction(t *testing.T) {
 	th, calls := countCalls(ReturnMapTestHandler)
 
-	state := parseValidTaskState([]byte(`{ "Next": "Pass", "Resource" : "asd"}`), th, t)
+	state := parseValidTaskState([]byte(`{ "Next": "Pass"}`), th, t)
 
 	testState(state, stateTestData{
 		Input:  map[string]interface{}{"a": "c"},
@@ -61,7 +92,6 @@ func Test_TaskState_ResourceFunction(t *testing.T) {
 func Test_TaskState_Catch_Works(t *testing.T) {
 	state := parseValidTaskState([]byte(`{
 		"Next": "Pass",
-		"Resource" : "asd",
 		"Catch": [{
 			"ErrorEquals": ["TestError"],
 			"Next": "Fail"
@@ -78,7 +108,6 @@ func Test_TaskState_Catch_Works(t *testing.T) {
 func Test_TaskState_Catch_Doesnt_Catch(t *testing.T) {
 	state := parseValidTaskState([]byte(`{
 		"Next": "Pass",
-		"Resource" : "asd",
 		"Catch": [{
 			"ErrorEquals": ["NotTestError"],
 			"Next": "Fail"
@@ -96,7 +125,6 @@ func Test_TaskState_Retry_Works(t *testing.T) {
 
 	state := parseValidTaskState([]byte(`{
 		"Next": "Pass",
-		"Resource" : "asd",
 		"Retry": [{
 			"ErrorEquals": ["TestError"],
 			"MaxAttempts": 2
@@ -127,13 +155,40 @@ func Test_TaskState_Catch_AND_Retry_Works(t *testing.T) {
 
 	state := parseValidTaskState([]byte(`{
 		"Next": "Pass",
-		"Resource" : "asd",
 		"Retry": [{
 			"ErrorEquals": ["TestError"],
 			"MaxAttempts": 1
 		}],
 		"Catch": [{
 			"ErrorEquals": ["TestError"],
+			"Next": "Fail"
+		}]
+	}`), th, t)
+
+	testState(state, stateTestData{
+		Input: map[string]interface{}{"a": "c"},
+		Next:  state.Name(),
+	}, t)
+
+	testState(state, stateTestData{
+		Input: map[string]interface{}{"a": "c"},
+		Next:  to.Strp("Fail"),
+	}, t)
+
+	assert.Equal(t, 2, *calls)
+}
+
+func Test_TaskState_Catch_AND_Retry_StateAll(t *testing.T) {
+	th, calls := countCalls(ThrowTestErrorHandler)
+
+	state := parseValidTaskState([]byte(`{
+		"Next": "Pass",
+		"Retry": [{
+			"ErrorEquals": ["States.ALL"],
+			"MaxAttempts": 1
+		}],
+		"Catch": [{
+			"ErrorEquals": ["States.ALL"],
 			"Next": "Fail"
 		}]
 	}`), th, t)

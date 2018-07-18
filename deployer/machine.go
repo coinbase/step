@@ -19,7 +19,7 @@ func StateMachine() (*machine.StateMachine, error) {
         "Catch": [
           {
             "Comment": "Bad Release or Error GoTo end",
-            "ErrorEquals": ["BadReleaseError", "UnmarshalError", "PanicError"],
+            "ErrorEquals": ["States.ALL"],
             "ResultPath": "$.error",
             "Next": "FailureClean"
           }
@@ -38,7 +38,7 @@ func StateMachine() (*machine.StateMachine, error) {
           },
           {
             "Comment": "Try Release Lock Then Fail",
-            "ErrorEquals": ["LockError", "PanicError"],
+            "ErrorEquals": ["States.ALL"],
             "ResultPath": "$.error",
             "Next": "ReleaseLockFailure"
           }
@@ -51,7 +51,7 @@ func StateMachine() (*machine.StateMachine, error) {
         "Catch": [
           {
             "Comment": "Try Release Lock Then Fail",
-            "ErrorEquals": ["BadReleaseError", "PanicError"],
+            "ErrorEquals": ["States.ALL"],
             "ResultPath": "$.error",
             "Next": "ReleaseLockFailure"
           }
@@ -70,7 +70,7 @@ func StateMachine() (*machine.StateMachine, error) {
           },
           {
             "Comment": "Unsure of State, Leave Lock and Fail",
-            "ErrorEquals": ["DeployLambdaError", "PanicError"],
+            "ErrorEquals": ["States.ALL"],
             "ResultPath": "$.error",
             "Next": "FailureDirty"
           }
@@ -82,12 +82,12 @@ func StateMachine() (*machine.StateMachine, error) {
         "Next": "FailureClean",
         "Retry": [ {
           "Comment": "Keep trying to Release",
-          "ErrorEquals": ["LockError"],
+          "ErrorEquals": ["States.ALL"],
           "MaxAttempts": 3,
           "IntervalSeconds": 30
         }],
         "Catch": [{
-          "ErrorEquals": ["LockError", "PanicError"],
+          "ErrorEquals": ["States.ALL"],
           "ResultPath": "$.error",
           "Next": "FailureDirty"
         }]

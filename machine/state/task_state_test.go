@@ -205,3 +205,33 @@ func Test_TaskState_Catch_AND_Retry_StateAll(t *testing.T) {
 
 	assert.Equal(t, 2, *calls)
 }
+
+func Test_TaskState_Catch_AND_Dont_Retry(t *testing.T) {
+	th, calls := countCalls(ThrowTestErrorHandler)
+
+	state := parseValidTaskState([]byte(`{
+		"Next": "Pass",
+		"Retry": [{
+			"ErrorEquals": ["TestError"],
+			"MaxAttempts": 1
+		},{
+			"ErrorEquals": ["States.ALL"]
+		}],
+		"Catch": [{
+			"ErrorEquals": ["States.ALL"],
+			"Next": "Fail"
+		}]
+	}`), th, t)
+
+	testState(state, stateTestData{
+		Input: map[string]interface{}{"a": "c"},
+		Next:  state.Name(),
+	}, t)
+
+	testState(state, stateTestData{
+		Input: map[string]interface{}{"a": "c"},
+		Next:  to.Strp("Fail"),
+	}, t)
+
+	assert.Equal(t, 2, *calls)
+}

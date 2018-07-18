@@ -114,10 +114,16 @@ func processRetrier(retryName *string, retriers []*Retrier, exec Execution) Exec
 				retrier.MaxAttempts = to.Intp(3)
 			}
 
-			if errorIncluded(retrier.ErrorEquals, err) && retrier.attempts < *retrier.MaxAttempts {
-				retrier.attempts++
-				// Returns the name of the state to the state-machine to re-execute
-				return input, retryName, nil
+			// Match on first retrier
+			if errorIncluded(retrier.ErrorEquals, err) {
+				if retrier.attempts < *retrier.MaxAttempts {
+					retrier.attempts++
+					// Returns the name of the state to the state-machine to re-execute
+					return input, retryName, nil
+				} else {
+					// Finished retrying so continue
+					return output, next, err
+				}
 			}
 		}
 

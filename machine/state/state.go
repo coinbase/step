@@ -3,6 +3,7 @@ package state
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/coinbase/step/jsonpath"
 	"github.com/coinbase/step/utils/is"
@@ -65,10 +66,11 @@ func errorIncluded(errorEquals []*string, err error) bool {
 	error_type := to.ErrorType(err)
 
 	for _, et := range errorEquals {
-		if *et == error_type {
+		if *et == "States.ALL" || *et == error_type {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -112,10 +114,16 @@ func processRetrier(retryName *string, retriers []*Retrier, exec Execution) Exec
 				retrier.MaxAttempts = to.Intp(3)
 			}
 
-			if errorIncluded(retrier.ErrorEquals, err) && retrier.attempts < *retrier.MaxAttempts {
-				retrier.attempts++
-				// Returns the name of the state to the state-machine to re-execute
-				return input, retryName, nil
+			// Match on first retrier
+			if errorIncluded(retrier.ErrorEquals, err) {
+				if retrier.attempts < *retrier.MaxAttempts {
+					retrier.attempts++
+					// Returns the name of the state to the state-machine to re-execute
+					return input, retryName, nil
+				} else {
+					// Finished retrying so continue
+					return output, next, err
+				}
 			}
 		}
 
@@ -243,21 +251,69 @@ func ValidateNameAndType(s State) error {
 	return nil
 }
 
-func retrierValid(r *Retrier) error {
-	if r.ErrorEquals == nil || len(r.ErrorEquals) == 0 {
-		return fmt.Errorf("Retrier requires ErrorEquals")
+func retryValid(retry []*Retrier) error {
+	if retry == nil {
+		return nil
+	}
+
+	for i, r := range retry {
+		if err := errorEqualsValid(r.ErrorEquals, len(retry)-1 == i); err != nil {
+			return err
+		}
 	}
 
 	return nil
 }
 
-func catcherValid(c *Catcher) error {
-	if c.ErrorEquals == nil || len(c.ErrorEquals) == 0 {
-		return fmt.Errorf("Catcher requires ErrorEquals")
+func catchValid(catch []*Catcher) error {
+	if catch == nil {
+		return nil
 	}
 
-	if is.EmptyStr(c.Next) {
-		return fmt.Errorf("Catcher requires Next")
+	for i, c := range catch {
+		if err := errorEqualsValid(c.ErrorEquals, len(catch)-1 == i); err != nil {
+			return err
+		}
+
+		if is.EmptyStr(c.Next) {
+			return fmt.Errorf("Catcher requires Next")
+		}
 	}
+	return nil
+}
+
+func errorEqualsValid(errorEquals []*string, last bool) error {
+	if errorEquals == nil || len(errorEquals) == 0 {
+		return fmt.Errorf("Retrier requires ErrorEquals")
+	}
+
+	for _, e := range errorEquals {
+		// If it is a States. Error, then must match one of the defined values
+		if strings.HasPrefix(*e, "States.") {
+			switch *e {
+			case
+				"States.ALL",
+				"States.Timeout",
+				"States.TaskFailed",
+				"States.Permissions",
+				"States.ResultPathMatchFailure",
+				"States.BranchFailed",
+				"States.NoChoiceMatched":
+			default:
+				return fmt.Errorf("Unknown States.* error found %q", *e)
+			}
+		}
+
+		if *e == "States.ALL" {
+			if len(errorEquals) != 1 {
+				return fmt.Errorf(`"States.ALL" ErrorEquals must be only element in list`)
+			}
+
+			if !last {
+				return fmt.Errorf(`"States.ALL" must be last Catcher/Retrier`)
+			}
+		}
+	}
+
 	return nil
 }

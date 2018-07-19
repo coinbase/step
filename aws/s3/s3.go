@@ -8,7 +8,6 @@ import (
 	"io"
 	"io/ioutil"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -50,28 +49,33 @@ func s3Error(bucket *string, path *string, err error) error {
 
 // Get downloads content from S3
 func Get(s3c aws.S3API, bucket *string, path *string) (*[]byte, error) {
+	_, body, err := GetObject(s3c, bucket, path)
+	return body, err
+}
+
+func GetObject(s3c aws.S3API, bucket *string, path *string) (*s3.GetObjectOutput, *[]byte, error) {
 	return get(s3c, &s3.GetObjectInput{
 		Bucket: bucket,
 		Key:    path,
 	})
 }
 
-func get(s3c aws.S3API, input *s3.GetObjectInput) (*[]byte, error) {
-	results, err := s3c.GetObject(input)
+func get(s3c aws.S3API, input *s3.GetObjectInput) (*s3.GetObjectOutput, *[]byte, error) {
+	output, err := s3c.GetObject(input)
 
 	if err != nil {
-		return nil, s3Error(input.Bucket, input.Key, err)
+		return nil, nil, s3Error(input.Bucket, input.Key, err)
 	}
 
-	defer results.Body.Close()
+	defer output.Body.Close()
 
 	buf := bytes.NewBuffer(nil)
-	if _, err := io.Copy(buf, results.Body); err != nil {
-		return nil, err
+	if _, err := io.Copy(buf, output.Body); err != nil {
+		return nil, nil, err
 	}
 
 	b := buf.Bytes()
-	return &b, nil
+	return output, &b, nil
 }
 
 // Put uploads content to s3
@@ -164,24 +168,6 @@ func PutStruct(s3c aws.S3API, bucket *string, path *string, str interface{}) err
 	}
 
 	return Put(s3c, bucket, path, to.Strp(string(outputJSON)))
-}
-
-/////////
-// Validation Helpers
-/////////
-
-// GetLastModified returns that last modified time of a file
-func GetLastModified(s3c aws.S3API, bucket *string, path *string) (*time.Time, error) {
-	results, err := s3c.GetObject(&s3.GetObjectInput{
-		Bucket: bucket,
-		Key:    path,
-	})
-
-	if err != nil {
-		return nil, s3Error(bucket, path, err)
-	}
-
-	return results.LastModified, nil
 }
 
 /////////

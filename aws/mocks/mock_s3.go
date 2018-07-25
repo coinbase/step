@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"bytes"
+	"io"
 	"io/ioutil"
 	"strings"
 	"time"
@@ -15,6 +16,7 @@ import (
 // S3Client
 type GetObjectResponse struct {
 	Resp  *s3.GetObjectOutput
+	Body  string
 	Error error
 }
 
@@ -52,9 +54,13 @@ func (m *MockS3Client) init() {
 	}
 }
 
+func MakeS3Body(ret string) io.ReadCloser {
+	return ioutil.NopCloser(strings.NewReader(ret))
+}
+
 func MakeS3Resp(ret string) *s3.GetObjectOutput {
 	return &s3.GetObjectOutput{
-		Body:         ioutil.NopCloser(strings.NewReader(ret)),
+		Body:         MakeS3Body(ret),
 		LastModified: to.Timep(time.Now()),
 	}
 }
@@ -67,6 +73,7 @@ func (m *MockS3Client) AddGetObject(key string, body string, err error) {
 	m.init()
 	m.GetObjectResp[key] = &GetObjectResponse{
 		Resp:  MakeS3Resp(body),
+		Body:  body,
 		Error: err,
 	}
 }
@@ -82,9 +89,12 @@ func (m *MockS3Client) AddPutObject(key string, err error) {
 func (m *MockS3Client) GetObject(in *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
 	m.init()
 	resp := m.GetObjectResp[*in.Key]
+
 	if resp == nil {
 		return nil, AWSS3NotFoundError()
 	}
+
+	resp.Resp.Body = MakeS3Body(resp.Body)
 	return resp.Resp, resp.Error
 }
 
@@ -94,12 +104,14 @@ func (m *MockS3Client) ListObjects(in *s3.ListObjectsInput) (*s3.ListObjectsOutp
 
 func (m *MockS3Client) PutObject(in *s3.PutObjectInput) (*s3.PutObjectOutput, error) {
 	m.init()
+
 	resp := m.PutObjectResp[*in.Key]
+	// Simulates adding the object
+	buf := new(bytes.Buffer)
+	buf.ReadFrom(in.Body)
+	m.AddGetObject(*in.Key, buf.String(), nil)
+
 	if resp == nil {
-		// Simulates adding the object
-		buf := new(bytes.Buffer)
-		buf.ReadFrom(in.Body)
-		m.AddGetObject(*in.Key, buf.String(), nil)
 		return &s3.PutObjectOutput{}, nil
 	}
 	return resp.Resp, resp.Error
@@ -107,9 +119,12 @@ func (m *MockS3Client) PutObject(in *s3.PutObjectInput) (*s3.PutObjectOutput, er
 
 func (m *MockS3Client) DeleteObject(in *s3.DeleteObjectInput) (*s3.DeleteObjectOutput, error) {
 	m.init()
+
 	resp := m.DeleteObjectResp[*in.Key]
+
+	delete(m.GetObjectResp, *in.Key)
+
 	if resp == nil {
-		m.GetObjectResp[*in.Key] = nil
 		return &s3.DeleteObjectOutput{}, nil
 	}
 	return resp.Resp, resp.Error

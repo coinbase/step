@@ -48,10 +48,11 @@ func ValidateHandler(awsc aws.AwsClients) interface{} {
 		release.UUID = nil // Will be set later
 		release.Success = to.Boolp(false)
 
-		release.SetDefaults(to.AwsRegionAccountFromContext(ctx)) // Fill in all the blank Attributes
+		region, account := to.AwsRegionAccountFromContext(ctx)
+		release.SetDefaults(region, account, "coinbase-step-deployer-")
 
 		// Validate the attributes for the release
-		if err := release.ValidateAttributes(); err != nil {
+		if err := release.Validate(awsc.S3Client(nil, nil, nil)); err != nil {
 			return nil, errors.BadReleaseError{err.Error()}
 		}
 
@@ -84,7 +85,7 @@ func LockHandler(awsc aws.AwsClients) interface{} {
 func ValidateResourcesHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
 		// Validate the Resources for the release
-		if err := release.ValidateResources(awsc.LambdaClient(release.AwsRegion, release.AwsAccountID, assumed_role), awsc.SFNClient(release.AwsRegion, release.AwsAccountID, assumed_role), awsc.S3Client(nil, nil, nil)); err != nil {
+		if err := release.ValidateResources(awsc.LambdaClient(release.AwsRegion, release.AwsAccountID, assumed_role), awsc.SFNClient(release.AwsRegion, release.AwsAccountID, assumed_role)); err != nil {
 			return nil, errors.BadReleaseError{err.Error()}
 		}
 

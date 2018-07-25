@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/coinbase/step/bifrost"
 	"github.com/coinbase/step/client"
 	"github.com/coinbase/step/deployer"
 	"github.com/coinbase/step/utils/run"
@@ -133,15 +134,17 @@ func deployRun(release *deployer.Release, zip *string, deployer_arn *string) {
 
 func newRelease(project *string, config *string, lambda *string, step *string, bucket *string, states *string, region *string, account_id *string) *deployer.Release {
 	return &deployer.Release{
-		ReleaseId:        to.TimeUUID("release-"),
-		CreatedAt:        to.Timep(time.Now()),
-		ProjectName:      project,
-		ConfigName:       config,
+		Release: bifrost.Release{
+			AwsRegion:    region,
+			AwsAccountID: account_id,
+			ReleaseID:    to.TimeUUID("release-"),
+			CreatedAt:    to.Timep(time.Now()),
+			ProjectName:  project,
+			ConfigName:   config,
+			Bucket:       bucket,
+		},
+		StateMachineJSON: states,
 		LambdaName:       lambda,
 		StepFnName:       step,
-		Bucket:           bucket,
-		StateMachineJSON: states,
-		AwsRegion:        region,
-		AwsAccountID:     account_id,
 	}
 }

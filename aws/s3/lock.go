@@ -42,6 +42,7 @@ func GrabLock(s3c aws.S3API, bucket *string, lock_path *string, uuid string) (bo
 	// After this point we might have created the lock so return true
 	// Create the Lock
 	err = PutStruct(s3c, bucket, lock_path, lock)
+
 	if err != nil {
 		return true, err
 	}
@@ -53,6 +54,7 @@ func GrabLock(s3c aws.S3API, bucket *string, lock_path *string, uuid string) (bo
 // If the lock file exists and is not the same UUID it returns an error
 func ReleaseLock(s3c aws.S3API, bucket *string, lock_path *string, uuid string) error {
 	var s3_lock Lock
+
 	err := GetStruct(s3c, bucket, lock_path, &s3_lock)
 	if err != nil {
 		switch err.(type) {

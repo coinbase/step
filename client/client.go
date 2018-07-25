@@ -13,7 +13,7 @@ import (
 // PrepareRelease returns a release with additional information filled in
 func PrepareRelease(release *deployer.Release, zip_file_path *string) error {
 	region, account_id := to.RegionAccount()
-	release.SetDefaults(region, account_id)
+	release.SetDefaults(region, account_id, "coinbase-step-deployer-")
 
 	lambda_sha, err := to.SHA256File(*zip_file_path)
 	if err != nil {
@@ -31,7 +31,7 @@ func PrepareRelease(release *deployer.Release, zip_file_path *string) error {
 	state_machine.SetResource(lambda_arn)
 	release.StateMachineJSON = to.Strp(to.CompactJSONStr(state_machine))
 
-	return release.ValidateClientAttributes()
+	return nil
 }
 
 // PrepareReleaseBundle builds and uploads necessary info for a deploy

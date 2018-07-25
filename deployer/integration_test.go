@@ -83,7 +83,7 @@ func Test_DeployHandler_Execution_Errors_Release(t *testing.T) {
 	release := MockRelease()
 
 	awsc := MockAwsClients(release)
-	release.ReleaseId = nil
+	release.ReleaseID = nil
 
 	state_machine := createTestStateMachine(t, awsc)
 
@@ -91,7 +91,7 @@ func Test_DeployHandler_Execution_Errors_Release(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", state_machine.LastOutput())
-	assert.Regexp(t, "ReleaseId must", state_machine.LastOutput())
+	assert.Regexp(t, "ReleaseID must", state_machine.LastOutput())
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
@@ -232,8 +232,9 @@ func Test_DeployHandler_Execution_Errors_WrongSFNPath(t *testing.T) {
 
 func Test_DeployHandler_Execution_Errors_BadLambdaSHA(t *testing.T) {
 	release := MockRelease()
-	awsc := MockAwsClients(release)
 	release.LambdaSHA256 = to.Strp("wrongsha")
+
+	awsc := MockAwsClients(release)
 
 	state_machine := createTestStateMachine(t, awsc)
 
@@ -246,12 +247,6 @@ func Test_DeployHandler_Execution_Errors_BadLambdaSHA(t *testing.T) {
 	assert.Equal(t, []string{
 		"Validate",
 		machine.TaskFnName("Validate"),
-		"Lock",
-		machine.TaskFnName("Lock"),
-		"ValidateResources",
-		machine.TaskFnName("ValidateResources"),
-		"ReleaseLockFailure",
-		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -273,12 +268,6 @@ func Test_DeployHandler_Execution_Errors_BadReleasePath(t *testing.T) {
 	assert.Equal(t, []string{
 		"Validate",
 		machine.TaskFnName("Validate"),
-		"Lock",
-		machine.TaskFnName("Lock"),
-		"ValidateResources",
-		machine.TaskFnName("ValidateResources"),
-		"ReleaseLockFailure",
-		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -300,12 +289,6 @@ func Test_DeployHandler_Execution_Errors_WrongReleasePath(t *testing.T) {
 	assert.Equal(t, []string{
 		"Validate",
 		machine.TaskFnName("Validate"),
-		"Lock",
-		machine.TaskFnName("Lock"),
-		"ValidateResources",
-		machine.TaskFnName("ValidateResources"),
-		"ReleaseLockFailure",
-		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }
@@ -327,12 +310,6 @@ func Test_DeployHandler_Execution_Errors_DifferentReleaseSHA(t *testing.T) {
 	assert.Equal(t, []string{
 		"Validate",
 		machine.TaskFnName("Validate"),
-		"Lock",
-		machine.TaskFnName("Lock"),
-		"ValidateResources",
-		machine.TaskFnName("ValidateResources"),
-		"ReleaseLockFailure",
-		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, state_machine.ExecutionPath())
 }

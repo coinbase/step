@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/coinbase/step/aws"
+	"github.com/coinbase/step/bifrost"
 	"github.com/coinbase/step/deployer"
 	"github.com/coinbase/step/execution"
 	"github.com/coinbase/step/utils/to"
@@ -22,7 +23,7 @@ func Deploy(release *deployer.Release, zip_file_path *string, deployer_arn *stri
 
 	fmt.Println("Preparing Deploy")
 	fmt.Println(to.PrettyJSONStr(release))
-	err = sendDeployToDeployer(awsc.SFNClient(nil, nil, nil), release.ReleaseId, release, deployer_arn)
+	err = sendDeployToDeployer(awsc.SFNClient(nil, nil, nil), release.ReleaseID, release, deployer_arn)
 	if err != nil {
 		return err
 	}
@@ -47,7 +48,7 @@ func sendDeployToDeployer(sfnc aws.SFNAPI, name *string, release *deployer.Relea
 		}
 
 		var release_error struct {
-			Error *deployer.ReleaseError `json:"error,omitempty"`
+			Error *bifrost.ReleaseError `json:"error,omitempty"`
 		}
 
 		json.Unmarshal([]byte(*sd.LastOutput), &release_error)

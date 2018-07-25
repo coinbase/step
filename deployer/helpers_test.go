@@ -11,6 +11,7 @@ import (
 	"github.com/coinbase/step/aws"
 	"github.com/coinbase/step/aws/mocks"
 	"github.com/coinbase/step/aws/s3"
+	"github.com/coinbase/step/bifrost"
 	"github.com/coinbase/step/machine"
 	"github.com/coinbase/step/utils/to"
 	"github.com/stretchr/testify/assert"
@@ -22,13 +23,14 @@ import (
 
 func MockRelease() *Release {
 	return &Release{
-		AwsAccountID:     to.Strp("00000000"),
-		ReleaseId:        to.Strp("release-1"),
-		ProjectName:      to.Strp("project"),
-		ConfigName:       to.Strp("development"),
-		CreatedAt:        to.Timep(time.Now()),
+		Release: bifrost.Release{
+			AwsAccountID: to.Strp("00000000"),
+			ReleaseID:    to.Strp("release-1"),
+			ProjectName:  to.Strp("project"),
+			ConfigName:   to.Strp("development"),
+			CreatedAt:    to.Timep(time.Now()),
+		},
 		LambdaName:       to.Strp("lambdaname"),
-		LambdaSHA256:     to.Strp("sha256"),
 		StepFnName:       to.Strp("stepfnname"),
 		StateMachineJSON: to.Strp(machine.EmptyStateMachine),
 	}
@@ -47,7 +49,10 @@ func MockAwsClients(r *Release) *mocks.MockAwsClientsStr {
 
 	lambda_zip_file_contents := "lambda_zip"
 	awsc.S3.AddGetObject(*r.LambdaZipPath(), lambda_zip_file_contents, nil)
-	r.LambdaSHA256 = to.Strp(to.SHA256Str(&lambda_zip_file_contents))
+
+	if r.LambdaSHA256 == nil {
+		r.LambdaSHA256 = to.Strp(to.SHA256Str(&lambda_zip_file_contents))
+	}
 
 	raw, _ := json.Marshal(r)
 
@@ -56,7 +61,7 @@ func MockAwsClients(r *Release) *mocks.MockAwsClientsStr {
 		account_id = to.Strp("000000000000")
 	}
 
-	awsc.S3.AddGetObject(fmt.Sprintf("%v/%v/%v/%v/release", *account_id, *r.ProjectName, *r.ConfigName, *r.ReleaseId), string(raw), nil)
+	awsc.S3.AddGetObject(fmt.Sprintf("%v/%v/%v/%v/release", *account_id, *r.ProjectName, *r.ConfigName, *r.ReleaseID), string(raw), nil)
 
 	return awsc
 }

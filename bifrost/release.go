@@ -5,7 +5,7 @@ import (
 	"reflect"
 	"time"
 
-	"github.com/coinbase/sif/aws"
+	"github.com/coinbase/step/aws"
 	"github.com/coinbase/step/aws/s3"
 	"github.com/coinbase/step/utils/is"
 	"github.com/coinbase/step/utils/to"

@@ -215,7 +215,7 @@ func validateInput(s state.State, input interface{}) error {
 		if task_name == *s.Name() || taskfn_name == *s.Name() {
 			return nil
 		}
-		fmt.Println(input)
+
 		return &handler.TaskError{fmt.Sprintf("$.Task input doesn't equal %v or %v", task_name, taskfn_name), s.Name(), nil}
 	}
 	return &handler.TaskError{"Input wrong type", s.Name(), nil}

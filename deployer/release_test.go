@@ -9,12 +9,6 @@ import (
 	"github.com/coinbase/step/utils/to"
 )
 
-func Test_Release_Is_Valid(t *testing.T) {
-	r := MockRelease()
-	r.SetDefaults(to.Strp("asd"), to.Strp("asd"))
-	assert.NoError(t, r.ValidateAttributes())
-}
-
 func Test_Release_DeployStepFunction(t *testing.T) {
 	sfnClient := &mocks.MockSFNClient{}
 	r := MockRelease()

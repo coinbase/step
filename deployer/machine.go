@@ -128,7 +128,7 @@ func StateMachineWithTaskHandlers(tfs *handler.TaskFunctions) (*machine.StateMac
 
 // TaskFunctions returns
 func TaskFunctions() *handler.TaskFunctions {
-	return CreateTaskFunctinons(&aws.AwsClientsStr{})
+	return CreateTaskFunctinons(&aws.Clients{})
 }
 
 // CreateTaskFunctinons returns

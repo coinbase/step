@@ -11,7 +11,7 @@ import (
 
 // Bootstrap takes release information and uploads directly to Step Function and Lambda
 func Bootstrap(release *deployer.Release, zip_file_path *string) error {
-	awsc := &aws.AwsClientsStr{}
+	awsc := &aws.Clients{}
 
 	fmt.Println("Preparing Release Bundle")
 	err := PrepareRelease(release, zip_file_path)

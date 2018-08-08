@@ -1,7 +1,10 @@
 package aws
 
 import (
+	"fmt"
+
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
@@ -29,51 +32,73 @@ type AwsClients interface {
 // AWS Clients
 ////////////
 
-type AwsClientsStr struct {
+type Clients struct {
 	session *session.Session
 	configs map[string]*aws.Config
-
-	s3Client     S3API
-	lambdaClient LambdaAPI
-	sfnClient    SFNAPI
 }
 
-func (awsc *AwsClientsStr) GetSession() *session.Session {
-	return awsc.session
+func (c Clients) Session() *session.Session {
+	if c.session != nil {
+		return c.session
+	}
+	// new session
+	sess := session.Must(session.NewSession())
+	c.session = sess
+	return sess
 }
 
-func (awsc *AwsClientsStr) SetSession(sess *session.Session) {
-	awsc.session = sess
-}
+func (c Clients) Config(
+	region *string,
+	account_id *string,
+	role *string) *aws.Config {
 
-func (awsc *AwsClientsStr) GetConfig(key string) *aws.Config {
-	if awsc.configs == nil {
+	// return no config for nil inputs
+	if account_id == nil || region == nil || role == nil {
 		return nil
 	}
 
-	config, ok := awsc.configs[key]
-	if ok && config != nil {
-		return config
+	arn := fmt.Sprintf(
+		"arn:aws:iam::%v:role/%v",
+		*account_id,
+		*role,
+	)
+
+	// include region in cache key otherwise concurrency errors
+	key := fmt.Sprintf("%v::%v", *region, arn)
+
+	// check for cached config
+	if c.configs != nil && c.configs[key] != nil {
+		return c.configs[key]
 	}
 
-	return nil
-}
+	// new creds
+	creds := stscreds.NewCredentials(c.Session(), arn)
 
-func (awsc *AwsClientsStr) SetConfig(key string, config *aws.Config) {
-	if awsc.configs == nil {
-		awsc.configs = map[string]*aws.Config{}
+	// new config
+	config := aws.NewConfig().
+		WithCredentials(creds).
+		WithRegion(*region).
+		WithMaxRetries(10)
+
+	if c.configs == nil {
+		c.configs = map[string]*aws.Config{}
 	}
-	awsc.configs[key] = config
+
+	c.configs[key] = config
+	return config
 }
 
-func (awsc *AwsClientsStr) S3Client(region *string, account_id *string, role *string) S3API {
-	return s3.New(Session(awsc), Config(awsc, region, account_id, role))
+func (c *Clients) S3Client(
+	region *string,
+	account_id *string,
+	role *string) S3API {
+	return s3.New(c.Session(), c.Config(region, account_id, role))
 }
 
-func (awsc *AwsClientsStr) LambdaClient(region *string, account_id *string, role *string) LambdaAPI {
-	return lambda.New(Session(awsc), Config(awsc, region, account_id, role))
+func (c *Clients) LambdaClient(region *string, account_id *string, role *string) LambdaAPI {
+	return lambda.New(c.Session(), c.Config(region, account_id, role))
 }
 
-func (awsc *AwsClientsStr) SFNClient(region *string, account_id *string, role *string) SFNAPI {
-	return sfn.New(Session(awsc), Config(awsc, region, account_id, role))
+func (c *Clients) SFNClient(region *string, account_id *string, role *string) SFNAPI {
+	return sfn.New(c.Session(), c.Config(region, account_id, role))
 }

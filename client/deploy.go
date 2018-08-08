@@ -13,7 +13,7 @@ import (
 
 // Deploy takes release information and Calls the Step Deployer to deploy the release
 func Deploy(release *deployer.Release, zip_file_path *string, deployer_arn *string) error {
-	awsc := &aws.AwsClientsStr{}
+	awsc := &aws.Clients{}
 
 	fmt.Println("Preparing Release Bundle")
 	err := PrepareReleaseBundle(awsc, release, zip_file_path)

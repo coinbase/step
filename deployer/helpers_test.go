@@ -36,7 +36,7 @@ func MockRelease() *Release {
 	}
 }
 
-func MockAwsClients(r *Release) *mocks.MockAwsClientsStr {
+func MockAwsClients(r *Release) *mocks.MockClients {
 	awsc := mocks.MockAwsClients()
 
 	awsc.Lambda.ListTagsResp = &lambda.ListTagsOutput{
@@ -70,7 +70,7 @@ func MockAwsClients(r *Release) *mocks.MockAwsClientsStr {
 // State Machine
 ////////
 
-func createTestStateMachine(t *testing.T, awsc *mocks.MockAwsClientsStr) *machine.StateMachine {
+func createTestStateMachine(t *testing.T, awsc *mocks.MockClients) *machine.StateMachine {
 	state_machine, err := StateMachineWithTaskHandlers(CreateTaskFunctinons(awsc))
 	assert.NoError(t, err)
 

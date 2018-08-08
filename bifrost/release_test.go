@@ -22,7 +22,7 @@ func MockRelease() *Release {
 		Bucket:       to.Strp("bucket"),
 	}
 }
-func MockAwsClients(r *Release) *mocks.MockAwsClientsStr {
+func MockAwsClients(r *Release) *mocks.MockClients {
 	awsc := mocks.MockAwsClients()
 
 	raw, _ := json.Marshal(r)

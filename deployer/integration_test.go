@@ -7,7 +7,6 @@ import (
 
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/sfn"
-	"github.com/coinbase/step/machine"
 	"github.com/coinbase/step/utils/to"
 	"github.com/stretchr/testify/assert"
 )
@@ -31,13 +30,9 @@ func Test_DeployHandler_Execution_Works(t *testing.T) {
 	assertNoLock(t, awsc, release)
 	assert.Equal(t, []string{
 		"Validate",
-		machine.TaskFnName("Validate"),
 		"Lock",
-		machine.TaskFnName("Lock"),
 		"ValidateResources",
-		machine.TaskFnName("ValidateResources"),
 		"Deploy",
-		machine.TaskFnName("Deploy"),
 		"Success",
 	}, exec.Path())
 }
@@ -76,7 +71,6 @@ func Test_DeployHandler_Execution_Errors_BadInput(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"Validate",
-		machine.TaskFnName("Validate"),
 		"FailureClean",
 	}, exec.Path())
 }
@@ -98,7 +92,6 @@ func Test_DeployHandler_Execution_Errors_Release(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"Validate",
-		machine.TaskFnName("Validate"),
 		"FailureClean",
 	}, exec.Path())
 }
@@ -120,7 +113,6 @@ func Test_DeployHandler_Execution_Errors_CreatedAt(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"Validate",
-		machine.TaskFnName("Validate"),
 		"FailureClean",
 	}, exec.Path())
 }
@@ -143,11 +135,8 @@ func Test_DeployHandler_Execution_Errors_LockError(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"Validate",
-		machine.TaskFnName("Validate"),
 		"Lock",
-		machine.TaskFnName("Lock"),
 		"ReleaseLockFailure",
-		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, exec.Path())
 }
@@ -168,9 +157,7 @@ func Test_DeployHandler_Execution_Errors_LockExistsError(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"Validate",
-		machine.TaskFnName("Validate"),
 		"Lock",
-		machine.TaskFnName("Lock"),
 		"FailureClean",
 	}, exec.Path())
 }
@@ -193,13 +180,9 @@ func Test_DeployHandler_Execution_Errors_WrongLambdaTags(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"Validate",
-		machine.TaskFnName("Validate"),
 		"Lock",
-		machine.TaskFnName("Lock"),
 		"ValidateResources",
-		machine.TaskFnName("ValidateResources"),
 		"ReleaseLockFailure",
-		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, exec.Path())
 }
@@ -221,13 +204,9 @@ func Test_DeployHandler_Execution_Errors_WrongSFNPath(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"Validate",
-		machine.TaskFnName("Validate"),
 		"Lock",
-		machine.TaskFnName("Lock"),
 		"ValidateResources",
-		machine.TaskFnName("ValidateResources"),
 		"ReleaseLockFailure",
-		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, exec.Path())
 }
@@ -248,7 +227,6 @@ func Test_DeployHandler_Execution_Errors_BadLambdaSHA(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"Validate",
-		machine.TaskFnName("Validate"),
 		"FailureClean",
 	}, exec.Path())
 }
@@ -269,7 +247,6 @@ func Test_DeployHandler_Execution_Errors_BadReleasePath(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"Validate",
-		machine.TaskFnName("Validate"),
 		"FailureClean",
 	}, exec.Path())
 }
@@ -290,7 +267,6 @@ func Test_DeployHandler_Execution_Errors_WrongReleasePath(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"Validate",
-		machine.TaskFnName("Validate"),
 		"FailureClean",
 	}, exec.Path())
 }
@@ -311,7 +287,6 @@ func Test_DeployHandler_Execution_Errors_DifferentReleaseSHA(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"Validate",
-		machine.TaskFnName("Validate"),
 		"FailureClean",
 	}, exec.Path())
 }
@@ -333,15 +308,10 @@ func Test_DeployHandler_Execution_Errors_DeploySFNError(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"Validate",
-		machine.TaskFnName("Validate"),
 		"Lock",
-		machine.TaskFnName("Lock"),
 		"ValidateResources",
-		machine.TaskFnName("ValidateResources"),
 		"Deploy",
-		machine.TaskFnName("Deploy"),
 		"ReleaseLockFailure",
-		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
 	}, exec.Path())
 }
@@ -361,13 +331,9 @@ func Test_DeployHandler_Execution_Errors_DeployLambdaError(t *testing.T) {
 
 	assert.Equal(t, []string{
 		"Validate",
-		machine.TaskFnName("Validate"),
 		"Lock",
-		machine.TaskFnName("Lock"),
 		"ValidateResources",
-		machine.TaskFnName("ValidateResources"),
 		"Deploy",
-		machine.TaskFnName("Deploy"),
 		"FailureDirty",
 	}, exec.Path())
 }

@@ -21,11 +21,12 @@ func Test_DeployHandler_Execution_Works(t *testing.T) {
 	awsc := MockAwsClients(release)
 	state_machine := createTestStateMachine(t, awsc)
 
-	output, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
+	output := exec.Output
 
 	assert.NoError(t, err)
 	assert.Equal(t, output["success"], true)
-	assert.NotRegexp(t, "error", state_machine.LastOutput())
+	assert.NotRegexp(t, "error", exec.LastOutputJSON)
 
 	assertNoLock(t, awsc, release)
 	assert.Equal(t, []string{
@@ -38,7 +39,7 @@ func Test_DeployHandler_Execution_Works(t *testing.T) {
 		"Deploy",
 		machine.TaskFnName("Deploy"),
 		"Success",
-	}, state_machine.ExecutionPath())
+	}, exec.Path())
 }
 
 func Test_DeployHandler_Execution_NoUUIDorSHA_Override(t *testing.T) {
@@ -49,7 +50,8 @@ func Test_DeployHandler_Execution_NoUUIDorSHA_Override(t *testing.T) {
 	awsc := MockAwsClients(release)
 	state_machine := createTestStateMachine(t, awsc)
 
-	output, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
+	output := exec.Output
 	assert.NoError(t, err)
 	assert.Equal(t, output["success"], true)
 	assert.NotEqual(t, output["uuid"], "badString")
@@ -66,17 +68,17 @@ func Test_DeployHandler_Execution_Errors_BadInput(t *testing.T) {
 	awsc := MockAwsClients(release)
 	state_machine := createTestStateMachine(t, awsc)
 
-	_, err := state_machine.ExecuteToMap(struct{}{})
+	exec, err := state_machine.Execute(struct{}{})
 
 	assert.Error(t, err)
-	assert.Regexp(t, "BadReleaseError", state_machine.LastOutput())
+	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		machine.TaskFnName("Validate"),
 		"FailureClean",
-	}, state_machine.ExecutionPath())
+	}, exec.Path())
 }
 
 func Test_DeployHandler_Execution_Errors_Release(t *testing.T) {
@@ -87,18 +89,18 @@ func Test_DeployHandler_Execution_Errors_Release(t *testing.T) {
 
 	state_machine := createTestStateMachine(t, awsc)
 
-	_, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
 
 	assert.Error(t, err)
-	assert.Regexp(t, "BadReleaseError", state_machine.LastOutput())
-	assert.Regexp(t, "ReleaseID must", state_machine.LastOutput())
+	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
+	assert.Regexp(t, "ReleaseID must", exec.LastOutputJSON)
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		machine.TaskFnName("Validate"),
 		"FailureClean",
-	}, state_machine.ExecutionPath())
+	}, exec.Path())
 }
 
 func Test_DeployHandler_Execution_Errors_CreatedAt(t *testing.T) {
@@ -109,18 +111,18 @@ func Test_DeployHandler_Execution_Errors_CreatedAt(t *testing.T) {
 
 	state_machine := createTestStateMachine(t, awsc)
 
-	_, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
 
 	assert.Error(t, err)
-	assert.Regexp(t, "BadReleaseError", state_machine.LastOutput())
-	assert.Regexp(t, "older", state_machine.LastOutput())
+	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
+	assert.Regexp(t, "older", exec.LastOutputJSON)
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		machine.TaskFnName("Validate"),
 		"FailureClean",
-	}, state_machine.ExecutionPath())
+	}, exec.Path())
 }
 
 func Test_DeployHandler_Execution_Errors_LockError(t *testing.T) {
@@ -131,11 +133,11 @@ func Test_DeployHandler_Execution_Errors_LockError(t *testing.T) {
 
 	awsc.S3.AddPutObject(*release.LockPath(), fmt.Errorf("PuttyError"))
 
-	_, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
 
 	assert.Error(t, err)
-	assert.Regexp(t, "LockError", state_machine.LastOutput())
-	assert.Regexp(t, "PuttyError", state_machine.LastOutput())
+	assert.Regexp(t, "LockError", exec.LastOutputJSON)
+	assert.Regexp(t, "PuttyError", exec.LastOutputJSON)
 
 	assertNoLock(t, awsc, release)
 
@@ -147,7 +149,7 @@ func Test_DeployHandler_Execution_Errors_LockError(t *testing.T) {
 		"ReleaseLockFailure",
 		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
-	}, state_machine.ExecutionPath())
+	}, exec.Path())
 }
 
 func Test_DeployHandler_Execution_Errors_LockExistsError(t *testing.T) {
@@ -158,11 +160,11 @@ func Test_DeployHandler_Execution_Errors_LockExistsError(t *testing.T) {
 
 	awsc.S3.AddGetObject(*release.LockPath(), `{"uuid":"notuuid"}`, nil)
 
-	_, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
 
 	assert.Error(t, err)
-	assert.Regexp(t, "LockExistsError", state_machine.LastOutput())
-	assert.Regexp(t, "Lock Already Exists", state_machine.LastOutput())
+	assert.Regexp(t, "LockExistsError", exec.LastOutputJSON)
+	assert.Regexp(t, "Lock Already Exists", exec.LastOutputJSON)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -170,7 +172,7 @@ func Test_DeployHandler_Execution_Errors_LockExistsError(t *testing.T) {
 		"Lock",
 		machine.TaskFnName("Lock"),
 		"FailureClean",
-	}, state_machine.ExecutionPath())
+	}, exec.Path())
 }
 
 // Bad Resource Errors
@@ -183,10 +185,10 @@ func Test_DeployHandler_Execution_Errors_WrongLambdaTags(t *testing.T) {
 
 	state_machine := createTestStateMachine(t, awsc)
 
-	_, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
 	assert.Error(t, err)
-	assert.Regexp(t, "BadReleaseError", state_machine.LastOutput())
-	assert.Regexp(t, "DeployWith", state_machine.LastOutput())
+	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
+	assert.Regexp(t, "DeployWith", exec.LastOutputJSON)
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
@@ -199,7 +201,7 @@ func Test_DeployHandler_Execution_Errors_WrongLambdaTags(t *testing.T) {
 		"ReleaseLockFailure",
 		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
-	}, state_machine.ExecutionPath())
+	}, exec.Path())
 }
 
 func Test_DeployHandler_Execution_Errors_WrongSFNPath(t *testing.T) {
@@ -211,10 +213,10 @@ func Test_DeployHandler_Execution_Errors_WrongSFNPath(t *testing.T) {
 
 	state_machine := createTestStateMachine(t, awsc)
 
-	_, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
 	assert.Error(t, err)
-	assert.Regexp(t, "BadReleaseError", state_machine.LastOutput())
-	assert.Regexp(t, "Role Path", state_machine.LastOutput())
+	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
+	assert.Regexp(t, "Role Path", exec.LastOutputJSON)
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
@@ -227,7 +229,7 @@ func Test_DeployHandler_Execution_Errors_WrongSFNPath(t *testing.T) {
 		"ReleaseLockFailure",
 		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
-	}, state_machine.ExecutionPath())
+	}, exec.Path())
 }
 
 func Test_DeployHandler_Execution_Errors_BadLambdaSHA(t *testing.T) {
@@ -238,17 +240,17 @@ func Test_DeployHandler_Execution_Errors_BadLambdaSHA(t *testing.T) {
 
 	state_machine := createTestStateMachine(t, awsc)
 
-	_, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
 	assert.Error(t, err)
-	assert.Regexp(t, "BadReleaseError", state_machine.LastOutput())
-	assert.Regexp(t, "Lambda SHA", state_machine.LastOutput())
+	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
+	assert.Regexp(t, "Lambda SHA", exec.LastOutputJSON)
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		machine.TaskFnName("Validate"),
 		"FailureClean",
-	}, state_machine.ExecutionPath())
+	}, exec.Path())
 }
 
 func Test_DeployHandler_Execution_Errors_BadReleasePath(t *testing.T) {
@@ -259,17 +261,17 @@ func Test_DeployHandler_Execution_Errors_BadReleasePath(t *testing.T) {
 	awsc.S3.AddGetObject(*release.ReleasePath(), "bad_release", nil)
 	state_machine := createTestStateMachine(t, awsc)
 
-	_, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
 	assert.Error(t, err)
-	assert.Regexp(t, "BadReleaseError", state_machine.LastOutput())
-	assert.Regexp(t, "uploaded Release struct", state_machine.LastOutput())
+	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
+	assert.Regexp(t, "uploaded Release struct", exec.LastOutputJSON)
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		machine.TaskFnName("Validate"),
 		"FailureClean",
-	}, state_machine.ExecutionPath())
+	}, exec.Path())
 }
 
 func Test_DeployHandler_Execution_Errors_WrongReleasePath(t *testing.T) {
@@ -280,17 +282,17 @@ func Test_DeployHandler_Execution_Errors_WrongReleasePath(t *testing.T) {
 	awsc.S3.AddGetObject(*release.ReleasePath(), "{}", nil)
 	state_machine := createTestStateMachine(t, awsc)
 
-	_, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
 	assert.Error(t, err)
-	assert.Regexp(t, "BadReleaseError", state_machine.LastOutput())
-	assert.Regexp(t, "Release SHA", state_machine.LastOutput())
+	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
+	assert.Regexp(t, "Release SHA", exec.LastOutputJSON)
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		machine.TaskFnName("Validate"),
 		"FailureClean",
-	}, state_machine.ExecutionPath())
+	}, exec.Path())
 }
 
 func Test_DeployHandler_Execution_Errors_DifferentReleaseSHA(t *testing.T) {
@@ -301,17 +303,17 @@ func Test_DeployHandler_Execution_Errors_DifferentReleaseSHA(t *testing.T) {
 	release.CreatedAt = to.Timep(time.Now())
 	state_machine := createTestStateMachine(t, awsc)
 
-	_, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
 	assert.Error(t, err)
-	assert.Regexp(t, "BadReleaseError", state_machine.LastOutput())
-	assert.Regexp(t, "Release SHA", state_machine.LastOutput())
+	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
+	assert.Regexp(t, "Release SHA", exec.LastOutputJSON)
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		machine.TaskFnName("Validate"),
 		"FailureClean",
-	}, state_machine.ExecutionPath())
+	}, exec.Path())
 }
 
 // Upload Errors
@@ -323,11 +325,11 @@ func Test_DeployHandler_Execution_Errors_DeploySFNError(t *testing.T) {
 
 	state_machine := createTestStateMachine(t, awsc)
 
-	_, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
 
 	assert.Error(t, err)
-	assert.Regexp(t, "DeploySFNError", state_machine.LastOutput())
-	assert.Regexp(t, "AWSSFNError", state_machine.LastOutput())
+	assert.Regexp(t, "DeploySFNError", exec.LastOutputJSON)
+	assert.Regexp(t, "AWSSFNError", exec.LastOutputJSON)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -341,7 +343,7 @@ func Test_DeployHandler_Execution_Errors_DeploySFNError(t *testing.T) {
 		"ReleaseLockFailure",
 		machine.TaskFnName("ReleaseLockFailure"),
 		"FailureClean",
-	}, state_machine.ExecutionPath())
+	}, exec.Path())
 }
 
 func Test_DeployHandler_Execution_Errors_DeployLambdaError(t *testing.T) {
@@ -351,11 +353,11 @@ func Test_DeployHandler_Execution_Errors_DeployLambdaError(t *testing.T) {
 
 	state_machine := createTestStateMachine(t, awsc)
 
-	_, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
 
 	assert.Error(t, err)
-	assert.Regexp(t, "DeployLambdaError", state_machine.LastOutput())
-	assert.Regexp(t, "AWSLambdaError", state_machine.LastOutput())
+	assert.Regexp(t, "DeployLambdaError", exec.LastOutputJSON)
+	assert.Regexp(t, "AWSLambdaError", exec.LastOutputJSON)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -367,5 +369,5 @@ func Test_DeployHandler_Execution_Errors_DeployLambdaError(t *testing.T) {
 		"Deploy",
 		machine.TaskFnName("Deploy"),
 		"FailureDirty",
-	}, state_machine.ExecutionPath())
+	}, exec.Path())
 }

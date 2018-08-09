@@ -32,8 +32,6 @@ type StateMachine struct {
 	StartAt *string
 
 	States map[string]state.State
-
-	executionHistory []HistoryEvent
 }
 
 // Global Methods
@@ -48,52 +46,6 @@ func Validate(sm_json *string) error {
 	}
 
 	return nil
-}
-
-// Struct Methods
-func (sm *StateMachine) ExecuteJSON(input *string) (*string, error) {
-	var json_input map[string]interface{}
-	if err := json.Unmarshal([]byte(*input), &json_input); err != nil {
-		return nil, err
-	}
-
-	output, err := sm.Execute(json_input)
-
-	if err != nil {
-		return nil, err
-	}
-
-	output_json, err := to.PrettyJSON(output)
-
-	if err != nil {
-		return nil, err
-	}
-	str := string(output_json)
-	return &str, nil
-}
-
-func (sm *StateMachine) ExecuteToMap(input interface{}) (map[string]interface{}, error) {
-	switch input.(type) {
-	case string:
-		var json_input map[string]interface{}
-		if err := json.Unmarshal([]byte(input.(string)), &json_input); err != nil {
-			return nil, err
-		}
-		input = json_input
-	case *string:
-		var json_input map[string]interface{}
-		if err := json.Unmarshal([]byte(*(input.(*string))), &json_input); err != nil {
-			return nil, err
-		}
-		input = json_input
-	}
-
-	output, err := sm.Execute(input)
-	switch output.(type) {
-	case map[string]interface{}:
-		return output.(map[string]interface{}), err
-	}
-	return nil, err
 }
 
 func (sm *StateMachine) FindTask(name string) (*state.TaskState, error) {
@@ -227,53 +179,81 @@ func (sm *StateMachine) DefaultLambdaContext(lambda_name string) context.Context
 	})
 }
 
-func (sm *StateMachine) Execute(input interface{}) (interface{}, error) {
-	sm.executionHistory = startExecution()
-	// Start Execution
-
-	err := sm.Validate()
-
-	if err != nil {
-		return input, err
+func processInput(input interface{}) (interface{}, error) {
+	// Make
+	switch input.(type) {
+	case string:
+		var json_input map[string]interface{}
+		if err := json.Unmarshal([]byte(input.(string)), &json_input); err != nil {
+			return nil, err
+		}
+		return json_input, nil
+	case *string:
+		var json_input map[string]interface{}
+		if err := json.Unmarshal([]byte(*(input.(*string))), &json_input); err != nil {
+			return nil, err
+		}
+		return json_input, nil
 	}
 
-	sanitizedInput, err := to.FromJSON(input)
-
-	if err != nil {
-		return input, err
-	}
-
-	// Execute Start State
-	output, err := sm.stateLoop(sm.StartAt, sanitizedInput)
-	if err != nil {
-		sm.executionHistory = append(sm.executionHistory, createEvent("ExecutionFailed"))
-	} else {
-		sm.executionHistory = append(sm.executionHistory, createEvent("ExecutionSucceeded"))
-	}
-
-	return output, err
+	// Converts the input interface into map[string]interface{}
+	return to.FromJSON(input)
 }
 
-func (sm *StateMachine) stateLoop(next *string, input interface{}) (output interface{}, err error) {
+func (sm *StateMachine) Execute(input interface{}) (*Execution, error) {
+	if err := sm.Validate(); err != nil {
+		return nil, err
+	}
+
+	input, err := processInput(input)
+	if err != nil {
+		return nil, err
+	}
+
+	// Start Execution (records the history, inputs, outputs...)
+	exec := &Execution{}
+	exec.Start()
+
+	// Execute Start State
+	output, err := sm.stateLoop(exec, sm.StartAt, input)
+
+	// Set Final Output
+	exec.SetOutput(output, err)
+
+	if err != nil {
+		exec.Failed()
+	} else {
+		exec.Succeeded()
+	}
+
+	return exec, err
+}
+
+func (sm *StateMachine) stateLoop(exec *Execution, next *string, input interface{}) (output interface{}, err error) {
 	// Flat loop instead of recursion to better implement timeouts
 	for {
 		s, ok := sm.States[*next]
 
 		if !ok {
-			return output, fmt.Errorf("Unknown State: %v", *next)
+			return nil, fmt.Errorf("Unknown State: %v", *next)
+		}
+
+		if len(exec.ExecutionHistory) > 250 {
+			return nil, fmt.Errorf("State Overflow")
 		}
 
 		if err := validateInput(s, input); err != nil {
-			return output, err
+			return nil, err
 		}
 
-		sm.executionHistory = append(sm.executionHistory, createEnteredEvent(s, input))
+		exec.EnteredEvent(s, input)
 
 		output, next, err = s.Execute(sm.DefaultLambdaContext(*s.Name()), input)
 
 		if *s.GetType() != "Fail" {
 			// Failure States Dont exit.
-			sm.executionHistory = append(sm.executionHistory, createExitedEvent(s, output))
+			exec.SetLastOutput(output, err)
+			exec.ExitedEvent(s, output)
 		}
 
 		// If Error return error

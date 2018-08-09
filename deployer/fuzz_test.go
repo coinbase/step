@@ -34,11 +34,10 @@ func Test_Release_ValidSM_Fuzz(t *testing.T) {
 func assertNoPanic(t *testing.T, release *Release) {
 	state_machine := createTestStateMachine(t, mocks.MockAwsClients())
 
-	_, err := state_machine.ExecuteToMap(release)
+	exec, err := state_machine.Execute(release)
 	if err != nil {
 		assert.NotRegexp(t, "Panic", err.Error())
 	}
 
-	le := state_machine.LastOutput()
-	assert.NotRegexp(t, "Panic", le)
+	assert.NotRegexp(t, "Panic", exec.OutputJSON)
 }

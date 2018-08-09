@@ -27,14 +27,15 @@ func Exec(state_machine *machine.StateMachine, err error) func(*string) {
 			input = to.Strp("{}")
 		}
 
-		output_json, err := state_machine.ExecuteJSON(input)
+		exec, err := state_machine.Execute(input)
+		output_json := exec.OutputJSON
 
 		if err != nil {
 			fmt.Println("ERROR", err)
 			os.Exit(1)
 		}
 
-		fmt.Println(*output_json)
+		fmt.Println(output_json)
 		os.Exit(0)
 	}
 }

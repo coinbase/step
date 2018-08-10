@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/coinbase/step/handler"
+	"github.com/coinbase/step/utils/to"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -16,25 +17,24 @@ func loadFixtrure(file string, t *testing.T) *StateMachine {
 	return example_machine
 }
 
-func executeJSON(json []byte, input map[string]interface{}, t *testing.T) (map[string]interface{}, error) {
+func execute(json []byte, input interface{}, t *testing.T) (map[string]interface{}, error) {
 	example_machine, err := FromJSON(json)
 	assert.NoError(t, err)
 	example_machine.SetDefaultHandler()
 
-	output, err := example_machine.ExecuteToMap(input)
+	exec, err := example_machine.Execute(input)
 
-	return output, err
+	return exec.Output, err
 }
 
 func executeFixture(file string, input map[string]interface{}, t *testing.T) map[string]interface{} {
 	example_machine := loadFixtrure(file, t)
 
-	output, err := example_machine.Execute(input)
+	exec, err := example_machine.Execute(input)
 
 	assert.NoError(t, err)
-	assert.IsType(t, map[string]interface{}{}, output)
 
-	return output.(map[string]interface{})
+	return exec.Output
 }
 
 //////
@@ -42,11 +42,11 @@ func executeFixture(file string, input map[string]interface{}, t *testing.T) map
 //////
 
 func Test_Machine_EmptyStateMachinePassExample(t *testing.T) {
-	_, err := executeJSON([]byte(EmptyStateMachine), make(map[string]interface{}), t)
+	_, err := execute([]byte(EmptyStateMachine), make(map[string]interface{}), t)
 	assert.NoError(t, err)
 }
 
-func Test_Machine_SimplePassExample(t *testing.T) {
+func Test_Machine_SimplePassExample_With_Execute(t *testing.T) {
 	json := []byte(`
   {
       "StartAt": "start",
@@ -60,7 +60,15 @@ func Test_Machine_SimplePassExample(t *testing.T) {
     }
   }`)
 
-	output, err := executeJSON(json, make(map[string]interface{}), t)
+	output, err := execute(json, make(map[string]interface{}), t)
+	assert.NoError(t, err)
+	assert.Equal(t, output["a"], "b")
+
+	output, err = execute(json, "{}", t)
+	assert.NoError(t, err)
+	assert.Equal(t, output["a"], "b")
+
+	output, err = execute(json, to.Strp("{}"), t)
 	assert.NoError(t, err)
 	assert.Equal(t, output["a"], "b")
 }
@@ -77,7 +85,7 @@ func Test_Machine_NoTaskShouldError(t *testing.T) {
     }
   }`)
 
-	_, err := executeJSON(json, make(map[string]interface{}), t)
+	_, err := execute(json, make(map[string]interface{}), t)
 	assert.Error(t, err)
 	assert.Equal(t, err.Error(), "TaskError(start): $.Task input is nil")
 }

@@ -141,11 +141,11 @@ func Test_HelloWorld_StateMachine(t *testing.T) {
   state_machine, err := StateMachine("")
   assert.NoError(t, err)
 
-  output, err := state_machine.ExecuteToMap(&Hello{})
+  exec, err := state_machine.Execute(&Hello{})
   assert.NoError(t, err)
-  assert.Equal(t, "Hello World", output["Greeting"])
+  assert.Equal(t, "Hello World", exec.Output["Greeting"])
 
-  assert.Equal(t, state_machine.ExecutionPath(), []string{
+  assert.Equal(t, state_machine.Path(), []string{
     "HelloFn",
     "Hello",
   })

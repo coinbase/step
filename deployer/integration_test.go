@@ -63,10 +63,28 @@ func Test_DeployHandler_Execution_Errors_BadInput(t *testing.T) {
 	awsc := MockAwsClients(release)
 	state_machine := createTestStateMachine(t, awsc)
 
-	exec, err := state_machine.Execute(struct{}{})
+	exec, err := state_machine.Execute("{}")
 
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
+	assertNoLock(t, awsc, release)
+
+	assert.Equal(t, []string{
+		"Validate",
+		"FailureClean",
+	}, exec.Path())
+}
+
+func Test_DeployHandler_Execution_UnmarhsallError(t *testing.T) {
+	release := MockRelease()
+	awsc := MockAwsClients(release)
+	state_machine := createTestStateMachine(t, awsc)
+
+	exec, err := state_machine.Execute(`{"asd": "asd"}`)
+
+	assert.Error(t, err)
+	assert.Regexp(t, "UnmarshalError", exec.LastOutputJSON)
+	assert.Regexp(t, "asd", exec.LastOutputJSON)
 	assertNoLock(t, awsc, release)
 
 	assert.Equal(t, []string{

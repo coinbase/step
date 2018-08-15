@@ -7,6 +7,7 @@ import (
 
 	"github.com/coinbase/step/aws"
 	"github.com/coinbase/step/aws/s3"
+	"github.com/coinbase/step/errors"
 	"github.com/coinbase/step/utils/is"
 	"github.com/coinbase/step/utils/to"
 )
@@ -198,9 +199,25 @@ func (r *Release) ReleaseLock(s3c aws.S3API) error {
 	return s3.ReleaseLock(s3c, r.Bucket, r.LockPath(), *r.UUID)
 }
 
-// GrabLock retrieves the Lock
-func (r *Release) GrabLock(s3c aws.S3API) (bool, error) {
-	return s3.GrabLock(s3c, r.Bucket, r.LockPath(), *r.UUID)
+// GrabLock retrieves the Lock returns LockExistsError, or LockExistsError
+func (r *Release) GrabLock(s3c aws.S3API) error {
+	grabbed, err := s3.GrabLock(s3c, r.Bucket, r.LockPath(), *r.UUID)
+
+	// Check grabbed first because there are errors that can be thrown before anything is created
+	if !grabbed {
+		if err != nil {
+			return &errors.LockExistsError{err.Error()}
+		}
+
+		return &errors.LockExistsError{fmt.Sprintf("Lock Already Exists at %v:%v", *r.Bucket, *r.LockPath())}
+	}
+
+	// Error if MAYBE grabbed the lock and we should try to unlock
+	if err != nil {
+		return &errors.LockError{err.Error()}
+	}
+
+	return nil
 }
 
 func (r *Release) LockPath() *string {

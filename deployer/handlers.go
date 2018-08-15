@@ -62,23 +62,8 @@ func ValidateHandler(awsc aws.AwsClients) interface{} {
 
 func LockHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
-		// First Thing is to grab the Lock
-		grabbed, err := release.GrabLock(awsc.S3Client(nil, nil, nil))
-
-		// Check grabbed first because there are errors that can be thrown before anything is created
-		if !grabbed {
-			if err != nil {
-				return nil, errors.LockExistsError{err.Error()}
-			}
-
-			return nil, errors.LockExistsError{"Lock Already Exists"}
-		}
-
-		if err != nil {
-			return nil, errors.LockError{err.Error()}
-		}
-
-		return release, nil
+		// returns LockExistsError, LockError
+		return release, release.GrabLock(awsc.S3Client(nil, nil, nil))
 	}
 }
 

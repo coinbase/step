@@ -2,5 +2,5 @@ source 'https://rubygems.org'
 
 gem "geoengineer", {
   git: 'https://github.com/coinbase/geoengineer.git',
-  ref: '331d1f0adf33e9b0ded09edfacf6d402c0f8a3e0'
+  ref: '81150cfce99959f580958cf4b1045e04f01814e4'
 }

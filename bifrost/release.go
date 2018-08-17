@@ -3,6 +3,7 @@ package bifrost
 import (
 	"fmt"
 	"reflect"
+	"strings"
 	"time"
 
 	"github.com/coinbase/step/aws"
@@ -283,4 +284,15 @@ func (r *Release) haltFlag(s3c aws.S3API) *string {
 	}
 
 	return to.Strp(string(*body))
+}
+
+// ExecutionPrefix returns
+func (r *Release) ExecutionPrefix() string {
+	pn := strings.Replace(*r.ProjectName, "/", "-", -1)
+	return fmt.Sprintf("deploy-%v-%v-", pn, *r.ConfigName)
+}
+
+// ExecutionName returns
+func (r *Release) ExecutionName() *string {
+	return to.TimeUUID(r.ExecutionPrefix())
 }

@@ -14,7 +14,7 @@ func Test_Release_Basic_Fuzz(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		f := fuzz.New()
 		var release Release
-		f.Fuzz(&release) // myInt gets a random value.
+		f.Fuzz(&release)
 
 		assertNoPanic(t, &release)
 	}
@@ -24,7 +24,7 @@ func Test_Release_ValidSM_Fuzz(t *testing.T) {
 	for i := 0; i < 20; i++ {
 		f := fuzz.New()
 		var release Release
-		f.Fuzz(&release) // myInt gets a random value.
+		f.Fuzz(&release)
 
 		release.StateMachineJSON = to.Strp(machine.EmptyStateMachine)
 		assertNoPanic(t, &release)

@@ -60,7 +60,11 @@ func (path *Path) MarshalJSON() ([]byte, error) {
 	if len(path.path) == 0 {
 		return json.Marshal("$")
 	}
-	return json.Marshal(fmt.Sprintf("$.%v", strings.Join(path.path[:], ".")))
+	return json.Marshal(path.String())
+}
+
+func (path *Path) String() string {
+	return fmt.Sprintf("$.%v", strings.Join(path.path[:], "."))
 }
 
 // ParsePathString parses a path string

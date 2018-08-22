@@ -6,6 +6,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/coinbase/step/machine"
+
 	"github.com/coinbase/step/bifrost"
 	"github.com/coinbase/step/client"
 	"github.com/coinbase/step/deployer"
@@ -23,6 +25,9 @@ func main() {
 
 	// Step Subcommands
 	jsonCommand := flag.NewFlagSet("json", flag.ExitOnError)
+
+	dotCommand := flag.NewFlagSet("dot", flag.ExitOnError)
+	dotStates := dotCommand.String("states", "{}", "State Machine JSON")
 
 	// Other Subcommands
 	bootstrapCommand := flag.NewFlagSet("bootstrap", flag.ExitOnError)
@@ -60,14 +65,18 @@ func main() {
 	switch os.Args[1] {
 	case "json":
 		jsonCommand.Parse(os.Args[2:])
+	case "dot":
+		dotCommand.Parse(os.Args[2:])
 	case "bootstrap":
 		bootstrapCommand.Parse(os.Args[2:])
 	case "deploy":
 		deployCommand.Parse(os.Args[2:])
 	default:
-		fmt.Println("Usage of step: step <json|bootstrap|deploy> <args> (No args starts Lambda)")
+		fmt.Println("Usage of step: step <json|bootstrap|deploy|dot> <args> (No args starts Lambda)")
 		fmt.Println("json")
 		jsonCommand.PrintDefaults()
+		fmt.Println("dot")
+		dotCommand.PrintDefaults()
 		fmt.Println("bootstrap")
 		bootstrapCommand.PrintDefaults()
 		fmt.Println("deploy")
@@ -77,7 +86,9 @@ func main() {
 
 	// Create the State machine
 	if jsonCommand.Parsed() {
-		jsonRun()
+		run.JSON(deployer.StateMachine())
+	} else if dotCommand.Parsed() {
+		run.Dot(machine.FromJSON([]byte(*dotStates)))
 	} else if bootstrapCommand.Parsed() {
 		r := newRelease(
 			bootstrapProject,
@@ -111,25 +122,22 @@ func main() {
 	}
 }
 
-// Print the state JSON for the step function
-func jsonRun() {
-	run.JSON(deployer.StateMachine())
+func check(err error) {
+	if err == nil {
+		return
+	}
+	fmt.Println("ERROR", err)
+	os.Exit(1)
 }
 
 func bootstrapRun(release *deployer.Release, zip *string) {
 	err := client.Bootstrap(release, zip)
-	if err != nil {
-		fmt.Println("ERROR", err)
-		os.Exit(1)
-	}
+	check(err)
 }
 
 func deployRun(release *deployer.Release, zip *string, deployer_arn *string) {
 	err := client.Deploy(release, zip, deployer_arn)
-	if err != nil {
-		fmt.Println("ERROR", err)
-		os.Exit(1)
-	}
+	check(err)
 }
 
 func newRelease(project *string, config *string, lambda *string, step *string, bucket *string, states *string, region *string, account_id *string) *deployer.Release {

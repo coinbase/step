@@ -143,8 +143,6 @@ func (sm *StateMachine) Validate() error {
 	}
 
 	// TODO: validate all states are reachable
-
-	// TODO: all Task States must have PassState assigning its Name
 	return nil
 }
 

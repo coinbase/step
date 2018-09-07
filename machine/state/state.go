@@ -234,9 +234,9 @@ func endValid(next *string, end *bool) error {
 func errorPrefix(s State) string {
 	if !is.EmptyStr(s.Name()) {
 		return fmt.Sprintf("%vState(%v) Error:", *s.GetType(), *s.Name())
-	} else {
-		return fmt.Sprintf("%vState Error:", *s.GetType())
 	}
+
+	return fmt.Sprintf("%vState Error:", *s.GetType())
 }
 
 func ValidateNameAndType(s State) error {

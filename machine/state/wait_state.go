@@ -18,7 +18,9 @@ type WaitState struct {
 	InputPath  *jsonpath.Path `json:",omitempty"`
 	OutputPath *jsonpath.Path `json:",omitempty"`
 
-	Seconds       *float64       `json:",omitempty"`
+	Seconds     *float64       `json:",omitempty"`
+	SecondsPath *jsonpath.Path `json:",omitempty"`
+
 	Timestamp     *time.Time     `json:",omitempty"`
 	TimestampPath *jsonpath.Path `json:",omitempty"`
 
@@ -28,13 +30,24 @@ type WaitState struct {
 
 func (s *WaitState) process(ctx context.Context, input interface{}) (interface{}, *string, error) {
 
-	if s.Seconds != nil {
-		// Run at 100X speed
-		time.Sleep(time.Duration(int64(*s.Seconds*10)) * time.Millisecond)
-	} else {
-		// Sleep for 50 milliseconds
-		time.Sleep(50 * time.Millisecond)
+	if s.SecondsPath != nil {
+		// Validate the path exists
+		_, err := s.SecondsPath.GetNumber(input)
+		if err != nil {
+			return nil, nil, err
+		}
+
+	} else if s.TimestampPath != nil {
+		// Validate the path exists
+		_, err := s.TimestampPath.GetTime(input)
+		if err != nil {
+			return nil, nil, err
+		}
 	}
+
+	// Always sleep the same amount of time, as this is a simulation
+	time.Sleep(50 * time.Millisecond)
+
 	return input, nextState(s.Next, s.End), nil
 }
 
@@ -62,6 +75,7 @@ func (s *WaitState) Validate() error {
 
 	exactly_one := []bool{
 		s.Seconds != nil,
+		s.SecondsPath != nil,
 		s.Timestamp != nil,
 		s.TimestampPath != nil,
 	}
@@ -74,7 +88,7 @@ func (s *WaitState) Validate() error {
 	}
 
 	if count != 1 {
-		return fmt.Errorf("%v Exactly One (Seconds,TimeStamp,TimeStampPath)", errorPrefix(s))
+		return fmt.Errorf("%v Exactly One (Seconds,SecondsPath,TimeStamp,TimeStampPath)", errorPrefix(s))
 	}
 
 	return nil

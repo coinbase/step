@@ -49,6 +49,7 @@ func parseChoiceState(b []byte, t *testing.T) *ChoiceState {
 	err := json.Unmarshal(b, &p)
 	assert.NoError(t, err)
 	p.SetName(to.Strp("TestState"))
+	p.SetType(to.Strp("Choice"))
 	return &p
 }
 
@@ -57,6 +58,7 @@ func parsePassState(b []byte, t *testing.T) *PassState {
 	err := json.Unmarshal(b, &p)
 	assert.NoError(t, err)
 	p.SetName(to.Strp("TestState"))
+	p.SetType(to.Strp("Pass"))
 	return &p
 }
 
@@ -65,6 +67,7 @@ func parseWaitState(b []byte, t *testing.T) *WaitState {
 	err := json.Unmarshal(b, &p)
 	assert.NoError(t, err)
 	p.SetName(to.Strp("TestState"))
+	p.SetType(to.Strp("Wait"))
 	return &p
 }
 
@@ -73,6 +76,7 @@ func parseTaskState(b []byte, t *testing.T) *TaskState {
 	err := json.Unmarshal(b, &p)
 	assert.NoError(t, err)
 	p.SetName(to.Strp("TestState"))
+	p.SetType(to.Strp("Task"))
 	return &p
 }
 

@@ -24,7 +24,7 @@ func Test_Put_Success(t *testing.T) {
 	s3c := &mocks.MockS3Client{}
 	bucket := to.Strp("bucket")
 	key := to.Strp("/path")
-	err := Put(s3c, bucket, key, to.Strp("asdji"))
+	err := PutStr(s3c, bucket, key, to.Strp("asdji"))
 	assert.NoError(t, err)
 
 	out, err := Get(s3c, bucket, key)
@@ -36,7 +36,7 @@ func Test_Delete_Success(t *testing.T) {
 	s3c := &mocks.MockS3Client{}
 	bucket := to.Strp("bucket")
 	key := to.Strp("/path")
-	err := Put(s3c, bucket, key, to.Strp("asdji"))
+	err := PutStr(s3c, bucket, key, to.Strp("asdji"))
 	assert.NoError(t, err)
 
 	out, err := Get(s3c, bucket, key)

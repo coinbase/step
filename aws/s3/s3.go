@@ -78,10 +78,42 @@ func get(s3c aws.S3API, input *s3.GetObjectInput) (*s3.GetObjectOutput, *[]byte,
 	return output, &b, nil
 }
 
+// GetBucketTags returns the tags on a bucket
+func GetBucketTags(s3c aws.S3API, bucket *string) (map[string]string, error) {
+	output, err := s3c.GetBucketTagging(&s3.GetBucketTaggingInput{
+		Bucket: bucket,
+	})
+
+	tags := map[string]string{}
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, tag := range output.TagSet {
+		tags[*tag.Key] = *tag.Value
+	}
+
+	return tags, nil
+}
+
 // Put uploads content to s3
-func Put(s3c aws.S3API, bucket *string, path *string, content *string) error {
+func Put(s3c aws.S3API, bucket *string, path *string, content *[]byte) error {
 	if content == nil {
 		return fmt.Errorf("Put content is nil")
+	}
+
+	return put(s3c, &s3.PutObjectInput{
+		Bucket: bucket,
+		Key:    path,
+		Body:   bytes.NewReader(*content),
+		ACL:    to.Strp("private"),
+	})
+}
+
+func PutStr(s3c aws.S3API, bucket *string, path *string, content *string) error {
+	if content == nil {
+		return fmt.Errorf("PutStr content is nil")
 	}
 
 	return put(s3c, &s3.PutObjectInput{
@@ -167,7 +199,7 @@ func PutStruct(s3c aws.S3API, bucket *string, path *string, str interface{}) err
 		return err
 	}
 
-	return Put(s3c, bucket, path, to.Strp(string(outputJSON)))
+	return Put(s3c, bucket, path, &outputJSON)
 }
 
 /////////

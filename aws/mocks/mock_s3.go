@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"strings"
@@ -30,6 +31,11 @@ type DeleteObjectResponse struct {
 	Error error
 }
 
+type GetBucketTaggingResponse struct {
+	Resp  *s3.GetBucketTaggingOutput
+	Error error
+}
+
 type MockS3Client struct {
 	s3iface.S3API
 
@@ -38,6 +44,8 @@ type MockS3Client struct {
 	PutObjectResp map[string]*PutObjectResponse
 
 	DeleteObjectResp map[string]*DeleteObjectResponse
+
+	GetBucketTaggingResp map[string]*GetBucketTaggingResponse
 }
 
 func (m *MockS3Client) init() {
@@ -51,6 +59,10 @@ func (m *MockS3Client) init() {
 
 	if m.DeleteObjectResp == nil {
 		m.DeleteObjectResp = map[string]*DeleteObjectResponse{}
+	}
+
+	if m.GetBucketTaggingResp == nil {
+		m.GetBucketTaggingResp = map[string]*GetBucketTaggingResponse{}
 	}
 }
 
@@ -86,6 +98,22 @@ func (m *MockS3Client) AddPutObject(key string, err error) {
 	}
 }
 
+func (m *MockS3Client) SetBucketTags(bucket string, tags map[string]string, err error) {
+	m.init()
+	tagSet := []*s3.Tag{}
+
+	for tk, tv := range tags {
+		tagSet = append(tagSet, &s3.Tag{Key: to.Strp(tk), Value: to.Strp(tv)})
+	}
+
+	m.GetBucketTaggingResp[bucket] = &GetBucketTaggingResponse{
+		Resp: &s3.GetBucketTaggingOutput{
+			TagSet: tagSet,
+		},
+		Error: err,
+	}
+}
+
 func (m *MockS3Client) GetObject(in *s3.GetObjectInput) (*s3.GetObjectOutput, error) {
 	m.init()
 	resp := m.GetObjectResp[*in.Key]
@@ -113,6 +141,15 @@ func (m *MockS3Client) PutObject(in *s3.PutObjectInput) (*s3.PutObjectOutput, er
 
 	if resp == nil {
 		return &s3.PutObjectOutput{}, nil
+	}
+	return resp.Resp, resp.Error
+}
+
+func (m *MockS3Client) GetBucketTagging(in *s3.GetBucketTaggingInput) (*s3.GetBucketTaggingOutput, error) {
+	m.init()
+	resp := m.GetBucketTaggingResp[*in.Bucket]
+	if resp == nil {
+		return nil, fmt.Errorf("Unkown Bucket, should mock the tags")
 	}
 	return resp.Resp, resp.Error
 }

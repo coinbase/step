@@ -254,7 +254,7 @@ func (r *Release) IsHalt(s3c aws.S3API) error {
 
 // Halt writes Halt flag to S3 to attempt to stop the release
 func (r *Release) Halt(s3c aws.S3API, message *string) error {
-	return s3.Put(s3c, r.Bucket, r.HaltPath(), message)
+	return s3.PutStr(s3c, r.Bucket, r.HaltPath(), message)
 }
 
 // RemoveHalt deletes the halt flat from S3

@@ -152,7 +152,7 @@ func unmarshallState(name string, raw_json *json.RawMessage) ([]state.State, err
 		passState := state.PassState{
 			Type:       to.Strp("Pass"),
 			ResultPath: path,
-			Result:     name,
+			Result:     taskName,
 			Next:       &taskName,
 		}
 

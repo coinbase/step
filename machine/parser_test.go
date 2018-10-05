@@ -71,7 +71,7 @@ func Test_Parser_Expands_TaskFn(t *testing.T) {
 	assert.Equal(t, *btask_state.End, true)
 
 	// Passing the right things
-	assert.Equal(t, a_state.Result.(string), "A")
+	assert.Equal(t, a_state.Result.(string), "_A_")
 	path, err := to.PrettyJSON(a_state.ResultPath)
 	assert.NoError(t, err)
 	assert.Equal(t, path, `"$.Task"`)

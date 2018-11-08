@@ -28,10 +28,10 @@ func Dot(stateMachine *machine.StateMachine, err error) {
 
 func toDot(stateMachine *machine.StateMachine) string {
 	return fmt.Sprintf(`digraph StateMachine {
-	node      [ style="rounded,filled,bold", shape=box, fixedsize=true, width=2, fontname="Arial" ];
-	edge      [ style=bold, fontname="Arial", ]
-  _Start    [ fillcolor=black, shape=circle, label="", width=0.25 ];
-  _End      [ fillcolor=black, shape=doublecircle, label="", width=0.3 ];
+	node      [ style="rounded,filled,bold", shape=box, fixedsize=true, width=2, fontname="Arial" fontcolor="#183153", color="#183153"];
+	edge      [ style=bold, fontname="Arial", fontcolor="#183153", color="#183153" ]
+  _Start    [ fillcolor="#183153", shape=circle, label="", width=0.25 ];
+  _End      [ fillcolor="#183153", shape=doublecircle, label="", width=0.3 ];
 
   _Start -> %v [weight=1000]
 
@@ -57,7 +57,7 @@ func processState(s state.State) string {
 		if *sstate.Next == machine.TaskFnName(name) {
 			return "" // Skip if TaskFn Pass
 		}
-		strs = append(strs, fmt.Sprintf(`%q [fillcolor="#b0b0b0"]`, name))
+		strs = append(strs, fmt.Sprintf(`%q [fillcolor="#FBFBFB"]`, name))
 		if sstate.Next != nil {
 			strs = append(strs, fmt.Sprintf(`%q -> %q [weight=100]`, name, *sstate.Next))
 		}
@@ -68,10 +68,10 @@ func processState(s state.State) string {
 	case *state.TaskState:
 		sstate := s.(*state.TaskState)
 		name = machine.RemoveTaskFnName(name)
-		strs = append(strs, fmt.Sprintf(`%q [fillcolor="#b0b0b0"]`, name))
+		strs = append(strs, fmt.Sprintf(`%q [fillcolor="#FBFBFB"]`, name))
 
 		if sstate.Retry != nil {
-			strs = append(strs, fmt.Sprintf(`%q -> %q [color="#FFa0a0"]`, name, name))
+			strs = append(strs, fmt.Sprintf(`%q -> %q [color="#F9E4D1"]`, name, name))
 		}
 
 		if sstate.Catch != nil {
@@ -80,7 +80,7 @@ func processState(s state.State) string {
 				if len(c.ErrorEquals) == 1 && *c.ErrorEquals[0] == "States.ALL" {
 					cname = ""
 				}
-				strs = append(strs, fmt.Sprintf(`%q -> %q [color="#FFa0a0", label=%q]`, name, *c.Next, cname))
+				strs = append(strs, fmt.Sprintf(`%q -> %q [color="#F9E4D1", label=%q]`, name, *c.Next, cname))
 			}
 		}
 
@@ -94,7 +94,7 @@ func processState(s state.State) string {
 
 	case *state.ChoiceState:
 		sstate := s.(*state.ChoiceState)
-		strs = append(strs, fmt.Sprintf(`%q [shape=diamond, fillcolor="#b0b0b0"]`, name))
+		strs = append(strs, fmt.Sprintf(`%q [shape=diamond, fillcolor="#FBFBFB"]`, name))
 
 		if sstate.Default != nil {
 			strs = append(strs, fmt.Sprintf(`%q -> %q [label="default", weight=10]`, name, *sstate.Default))
@@ -120,17 +120,17 @@ func processState(s state.State) string {
 			wait_til = fmt.Sprintf("%v", *sstate.TimestampPath)
 		}
 
-		strs = append(strs, fmt.Sprintf(`%q [width=0.5, shape=doublecircle, fillcolor="#b0b0b0", label="Wait"]`, name))
+		strs = append(strs, fmt.Sprintf(`%q [width=0.5, shape=doublecircle, fillcolor="#FBFBFB", label="Wait"]`, name))
 
 		if sstate.Next != nil {
 			strs = append(strs, fmt.Sprintf(`%q -> %q [weight=100, label=%q]`, name, *sstate.Next, wait_til))
 		}
 
 	case *state.FailState:
-		strs = append(strs, fmt.Sprintf(`%q [fillcolor="#ffa0a0"]`, name))
+		strs = append(strs, fmt.Sprintf(`%q [fillcolor="#F9E4D1"]`, name))
 		strs = append(strs, fmt.Sprintf(`%q -> _End [weight=1000]`, name))
 	case *state.SucceedState:
-		strs = append(strs, fmt.Sprintf(`%q [fillcolor="#a0ffa0"]`, name))
+		strs = append(strs, fmt.Sprintf(`%q [fillcolor="#e5eddb"]`, name))
 		strs = append(strs, fmt.Sprintf(`%q -> _End [weight=1000]`, name))
 
 	}

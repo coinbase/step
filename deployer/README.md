@@ -1,6 +1,6 @@
 # Step Deployer
 
-<img src="../assets/step-deployer-sm.png" align="right" alt="deployer state machine" />
+<img src="../assets/sm.png" align="right" alt="deployer state machine" />
 
 The Step Deployer is an [AWS Step Function](https://docs.aws.amazon.com/step-functions/latest/dg/getting-started.html) that can deploy step functions, so it can recursively deploy itself.
 

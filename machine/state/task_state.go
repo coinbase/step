@@ -32,8 +32,8 @@ type TaskState struct {
 	End  *bool   `json:",omitempty"`
 }
 
-func (s *TaskState) SetTaskHandler(reasourcefn interface{}) {
-	s.TaskHandler = reasourcefn
+func (s *TaskState) SetTaskHandler(resourcefn interface{}) {
+	s.TaskHandler = resourcefn
 }
 
 func (s *TaskState) process(ctx context.Context, input interface{}) (interface{}, *string, error) {

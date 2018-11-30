@@ -59,7 +59,7 @@ func JSON(state_machine *machine.StateMachine, err error) {
 }
 
 // LambdaTasks takes task functions and and executes as a lambda
-func LambdaTasks(task_functions *handler.TaskFunctions) {
+func LambdaTasks(task_functions *handler.TaskHandlers) {
 	handler, err := handler.CreateHandler(task_functions)
 
 	if err != nil {

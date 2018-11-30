@@ -21,7 +21,7 @@ func Test_Handler_Execution(t *testing.T) {
 		return "asd", nil
 	}
 
-	tm := TaskFunctions{"Tester": testHandler}
+	tm := TaskHandlers{"Tester": testHandler}
 	handle, err := CreateHandler(&tm)
 	assert.NoError(t, err)
 
@@ -37,7 +37,7 @@ func Test_Handler_Execution(t *testing.T) {
 }
 
 func Test_Handler_Failure(t *testing.T) {
-	tm := TaskFunctions{}
+	tm := TaskHandlers{}
 	handle, err := CreateHandler(&tm)
 	assert.NoError(t, err)
 

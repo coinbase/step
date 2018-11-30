@@ -59,7 +59,7 @@ func main() {
 	// By Default Run Lambda Function
 	if len(os.Args) == 1 {
 		fmt.Println("Starting Lambda")
-		run.LambdaTasks(deployer.TaskFunctions())
+		run.LambdaTasks(deployer.TaskHandlers())
 	}
 
 	switch os.Args[1] {

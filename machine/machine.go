@@ -91,18 +91,18 @@ func (sm *StateMachine) SetResource(lambda_arn *string) {
 
 func (sm *StateMachine) SetDefaultHandler() {
 	for _, task := range sm.Tasks() {
-		task.SetResourceFunction(DefaultHandler)
+		task.SetTaskHandler(DefaultHandler)
 	}
 }
 
-func (sm *StateMachine) SetResourceFunctions(tfs *handler.TaskFunctions) error {
+func (sm *StateMachine) SetTaskFnHandlers(tfs *handler.TaskHandlers) error {
 	taskHandlers, err := handler.CreateHandler(tfs)
 	if err != nil {
 		return err
 	}
 
 	for name, _ := range *tfs {
-		if err := sm.SetResourceFunction(name, taskHandlers); err != nil {
+		if err := sm.SetTaskHandler(name, taskHandlers); err != nil {
 			return err
 		}
 	}
@@ -110,13 +110,13 @@ func (sm *StateMachine) SetResourceFunctions(tfs *handler.TaskFunctions) error {
 	return nil
 }
 
-func (sm *StateMachine) SetResourceFunction(task_name string, resource_fn interface{}) error {
+func (sm *StateMachine) SetTaskHandler(task_name string, resource_fn interface{}) error {
 	task, err := sm.FindTask(task_name)
 	if err != nil {
 		return err
 	}
 
-	task.SetResourceFunction(resource_fn)
+	task.SetTaskHandler(resource_fn)
 	return nil
 }
 

@@ -109,14 +109,14 @@ func StateMachine() (*machine.StateMachine, error) {
   }`))
 }
 
-// TaskFunctions returns
-func TaskFunctions() *handler.TaskFunctions {
+// TaskHandlers returns
+func TaskHandlers() *handler.TaskHandlers {
 	return CreateTaskFunctinons(&aws.Clients{})
 }
 
 // CreateTaskFunctinons returns
-func CreateTaskFunctinons(awsc aws.AwsClients) *handler.TaskFunctions {
-	tm := handler.TaskFunctions{}
+func CreateTaskFunctinons(awsc aws.AwsClients) *handler.TaskHandlers {
+	tm := handler.TaskHandlers{}
 	tm["Validate"] = ValidateHandler(awsc)
 	tm["Lock"] = LockHandler(awsc)
 	tm["ValidateResources"] = ValidateResourcesHandler(awsc)

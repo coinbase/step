@@ -15,11 +15,7 @@ The three core components of Step are:
 A Step function has two parts:
 
 1. A **State Machine** description in JSON, which outlines the flow of execution.
-2. The **Lambda Function** which executes the `Task` states of the step function.
-
-*Step uses only one Lambda per State Machine making it easier to test and maintain.*
-
-**All following examples come from [`coinbase/step-hello-world`](https://github.com/coinbase/step-hello-world)**
+2. The **Lambda Function** which executes the `TaskFn` states of the step function.
 
 Create a State Machine like this:
 
@@ -29,14 +25,8 @@ func StateMachine(lambdaArn string) (machine.StateMachine, error) {
     "Comment": "Hello World",
     "StartAt": "HelloFn",
     "States": {
-      "HelloFn": {
-        "Type": "Pass",
-        "Result": "Hello",
-        "ResultPath": "$.Task",
-        "Next": "Hello"
-      },
       "Hello": {
-        "Type": "Task",
+        "Type": "TaskFn",
         "Comment": "Deploy Step Function",
         "End": true
       }
@@ -47,8 +37,8 @@ func StateMachine(lambdaArn string) (machine.StateMachine, error) {
       return nil, err
   }
 
-  // Set the "Hello" Task Handler to be executed on that state
-  state_machine.SetResourceFunction("Hello", HelloHandler)
+  // Set the Handlers
+  state_machine.SetTaskFnHandlers(CreateTaskHandlers())
 
   // Set Lambda Arn to call with Task States
   state_machine.SetResource(&lambdaArn)
@@ -57,13 +47,18 @@ func StateMachine(lambdaArn string) (machine.StateMachine, error) {
 }
 ```
 
-When a `Task` state is reached, the handler assigned to that state will be executed. To know what Handler to execute the state machine must include a `Pass` state before the `Task` that injects the `Task` name into `$.Task`. 
+`TaskFn` is a custom state type that injects `Parameters` to execute the correct handler.
 
-Above you can see we set the Handler to the `"Hello"` task to be `HelloHandler`. All Handlers must implement the type `func(context.Context, interface{}) (interface{}, error)` where the interfaces can be arbitrary Structs.
-
-`HelloHandler` is defined like:
+Each `TaskFn` must have a handler that implements `func(context.Context, <input_type>) (interface{}, error)`. These are defined like:
 
 ```go
+func CreateTaskFunctinons() *handler.TaskHandlers {
+  tm := handler.TaskHandlers{}
+  // Assign Hello state the HelloHandler
+	tm["Hello"] = HelloHandler
+	return &tm
+}
+
 type Hello struct {
   Greeting *string
 }
@@ -88,7 +83,7 @@ func main() {
   switch len(os.Args) {
   case 1:
     fmt.Println("Starting Lambda")
-    run.Lambda(StateMachine("lambda"))
+    run.LambdaTasks(StateMachine("lambda"))
   case 2:
     command = os.Args[1]
     arg = ""
@@ -114,22 +109,6 @@ func main() {
 1. `./step-hello-world` will run as a Lambda Function
 2. `./step-hello-world json` will print out the state machine
 
-As a bonus command `exec` will execute the State Machine, e.g. `./step-hello-world exec` returns:
-
-```bash
-{
-  "Greeting": "Hello World"
-}
-```
-
-and running `./step-hello-world exec '{"Greeting": "Hi"}'` returns:
-
-``` bash
-{
- "Greeting": "Hi"
-}
-```
-
 ### Testing
 
 A core benefit when using Step and joining the State Machine and Lambda together is that it makes it possible to test your Step Functions execution.
@@ -146,7 +125,6 @@ func Test_HelloWorld_StateMachine(t *testing.T) {
   assert.Equal(t, "Hello World", exec.Output["Greeting"])
 
   assert.Equal(t, state_machine.Path(), []string{
-    "HelloFn",
     "Hello",
   })
 }
@@ -199,10 +177,12 @@ step deploy                           \
 
 ### Development State
 
-Step is still very Beta and its API might change quickly.
+Step is still Beta and its API might change quickly.
 
 ### More Links
 
+1. [AWS Step Functions, State Machines, Bifrost, and Building Deployers](https://blog.coinbase.com/aws-step-functions-state-machines-bifrost-and-building-deployers-5e3745fe645b)
+1. [Open Sourcing Coinbase’s Secure Deployment Pipeline](https://engineering.coinbase.com/open-sourcing-coinbases-secure-deployment-pipeline-ae6c78e25517)
 1. https://docs.aws.amazon.com/step-functions/latest/dg/step-functions-dg.pdf
 1. https://github.com/vkkis93/serverless-step-functions-offline
 1. https://github.com/totherik/step

@@ -80,7 +80,7 @@ func Test_TaskState_Valid_ErrorEquals_StatesAll(t *testing.T) {
 	assert.Error(t, state.Validate())
 }
 
-func Test_TaskState_ResourceFunction(t *testing.T) {
+func Test_TaskState_TaskHandler(t *testing.T) {
 	th, calls := countCalls(ReturnMapTestHandler)
 
 	state := parseValidTaskState([]byte(`{ "Next": "Pass"}`), th, t)

@@ -15,8 +15,8 @@ import (
 // TYPES
 ///////////
 
-// TaskFunctions maps a Task Name String to a function <pre>ahsufasiu</pre>
-type TaskFunctions map[string]interface{}
+// TaskHandlers maps a Task Name String to a function <pre>ahsufasiu</pre>
+type TaskHandlers map[string]interface{}
 
 // TaskReflection caches lots of the reflected values from the Task functions in order to speed up calls
 type TaskReflection struct {
@@ -35,8 +35,8 @@ func CreateTaskReflection(handlerSymbol interface{}) TaskReflection {
 	}
 }
 
-// Tasks returns all Task names from a TaskFunctions Map
-func (t *TaskFunctions) Tasks() []string {
+// Tasks returns all Task names from a TaskHandlers Map
+func (t *TaskHandlers) Tasks() []string {
 	keys := []string{}
 	for key, _ := range *t {
 		keys = append(keys, key)
@@ -44,8 +44,8 @@ func (t *TaskFunctions) Tasks() []string {
 	return keys
 }
 
-// TaskFunctions Returns a map of TaskReflections from TaskFunctions
-func (t *TaskFunctions) Reflect() map[string]TaskReflection {
+// TaskHandlers Returns a map of TaskReflections from TaskHandlers
+func (t *TaskHandlers) Reflect() map[string]TaskReflection {
 	ref := map[string]TaskReflection{}
 	for name, handler := range *t {
 		ref[name] = CreateTaskReflection(handler)
@@ -53,8 +53,8 @@ func (t *TaskFunctions) Reflect() map[string]TaskReflection {
 	return ref
 }
 
-// TaskFunctions validates all handlers in a TaskFunctions map
-func (t *TaskFunctions) Validate() error {
+// TaskHandlers validates all handlers in a TaskHandlers map
+func (t *TaskHandlers) Validate() error {
 	// Each
 	for name, handler := range *t {
 		if err := ValidateHandler(handler); err != nil {
@@ -153,7 +153,7 @@ func (t *TaskError) Error() string {
 ///////////
 
 // CreateHandler returns the handler passed to the lambda.Start function
-func CreateHandler(tm *TaskFunctions) (func(context context.Context, input *RawMessage) (interface{}, error), error) {
+func CreateHandler(tm *TaskHandlers) (func(context context.Context, input *RawMessage) (interface{}, error), error) {
 	if err := tm.Validate(); err != nil {
 		return nil, err
 	}

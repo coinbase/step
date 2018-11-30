@@ -76,7 +76,7 @@ func createTestStateMachine(t *testing.T, awsc *mocks.MockClients) *machine.Stat
 
 	tfs := CreateTaskFunctinons(awsc)
 
-	err = stateMachine.SetResourceFunctions(tfs)
+	err = stateMachine.SetTaskFnHandlers(tfs)
 	assert.NoError(t, err)
 
 	return stateMachine

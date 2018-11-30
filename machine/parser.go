@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 
 	"github.com/coinbase/step/machine/state"
+	"github.com/coinbase/step/utils/to"
 )
 
 // Takes a file, and a map of Task Function s
@@ -133,6 +134,7 @@ func unmarshallState(name string, raw_json *json.RawMessage) ([]state.State, err
 		err = json.Unmarshal(*raw_json, &s)
 		// This will inject the Task name into the input
 		s.Parameters = map[string]interface{}{"Task": name, "Input.$": "$"}
+		s.Type = to.Strp("Task")
 		newState = &s
 	default:
 		err = fmt.Errorf("Unknown State %q", state_type.Type)

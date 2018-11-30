@@ -69,14 +69,6 @@ func (sm *StateMachine) Tasks() map[string]*state.TaskState {
 	return tasks
 }
 
-func (sm *StateMachine) TaskFunctions() *handler.TaskFunctions {
-	tm := handler.TaskFunctions{}
-	for name, task := range sm.Tasks() {
-		tm[name] = task.ResourceFunction
-	}
-	return &tm
-}
-
 func (sm *StateMachine) AddState(s state.State) error {
 	_, ok := sm.States[*s.Name()]
 
@@ -101,6 +93,21 @@ func (sm *StateMachine) SetDefaultHandler() {
 	for _, task := range sm.Tasks() {
 		task.SetResourceFunction(DefaultHandler)
 	}
+}
+
+func (sm *StateMachine) SetResourceFunctions(tfs *handler.TaskFunctions) error {
+	taskHandlers, err := handler.CreateHandler(tfs)
+	if err != nil {
+		return err
+	}
+
+	for name, _ := range *tfs {
+		if err := sm.SetResourceFunction(name, taskHandlers); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 func (sm *StateMachine) SetResourceFunction(task_name string, resource_fn interface{}) error {

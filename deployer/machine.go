@@ -109,23 +109,6 @@ func StateMachine() (*machine.StateMachine, error) {
   }`))
 }
 
-// StateMachineWithTaskHandlers returns
-func StateMachineWithTaskHandlers(tfs *handler.TaskFunctions) (*machine.StateMachine, error) {
-	stateMachine, err := StateMachine()
-	if err != nil {
-		return nil, err
-	}
-
-	for name, smhandler := range *tfs {
-		if err := stateMachine.SetResourceFunction(name, smhandler); err != nil {
-			return nil, err
-		}
-
-	}
-
-	return stateMachine, nil
-}
-
 // TaskFunctions returns
 func TaskFunctions() *handler.TaskFunctions {
 	return CreateTaskFunctinons(&aws.Clients{})

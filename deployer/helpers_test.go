@@ -71,10 +71,15 @@ func MockAwsClients(r *Release) *mocks.MockClients {
 ////////
 
 func createTestStateMachine(t *testing.T, awsc *mocks.MockClients) *machine.StateMachine {
-	state_machine, err := StateMachineWithTaskHandlers(CreateTaskFunctinons(awsc))
+	stateMachine, err := StateMachine()
 	assert.NoError(t, err)
 
-	return state_machine
+	tfs := CreateTaskFunctinons(awsc)
+
+	err = stateMachine.SetResourceFunctions(tfs)
+	assert.NoError(t, err)
+
+	return stateMachine
 }
 
 func assertNoLock(t *testing.T, awsc aws.AwsClients, release *Release) {

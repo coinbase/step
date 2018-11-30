@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/coinbase/step/machine/state"
-	"github.com/coinbase/step/utils/to"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -51,18 +50,16 @@ func Test_Parser_Expands_TaskFn(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Names and Types
-	assert.Equal(t, len(sm.States), 4)
+	assert.Equal(t, len(sm.States), 2)
 	assert.Equal(t, *sm.States["A"].GetType(), "Task")
-
 	assert.Equal(t, *sm.States["B"].GetType(), "Task")
 
-	atask_state := sm.States["A"].(*state.TaskState)
-
-	btask_state := sm.States["B"].(*state.TaskState)
+	ataskState := sm.States["A"].(*state.TaskState)
+	btaskState := sm.States["B"].(*state.TaskState)
 
 	// ORDER
-	assert.Equal(t, *a_state.Parameters, map[string][string]{"Task": "A", "Input.$": "$"}))
-	assert.Equal(t, *b_state.Parameters, map[string][string]{"Task": "A", "Input.$": "$"}))
+	assert.Equal(t, ataskState.Parameters, map[string]interface{}{"Task": "A", "Input.$": "$"})
+	assert.Equal(t, btaskState.Parameters, map[string]interface{}{"Task": "B", "Input.$": "$"})
 }
 
 func Test_Machine_Parser_FileNonexistantFile(t *testing.T) {
@@ -83,8 +80,6 @@ func Test_Machine_Parser_OfBadPath(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "Bad JSON path", err.Error())
 }
-
-// Validation Tests
 
 // BASIC TYPE TESTS
 

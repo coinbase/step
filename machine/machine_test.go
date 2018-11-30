@@ -1,12 +1,10 @@
 package machine
 
 import (
-	"context"
 	"encoding/json"
 	"io/ioutil"
 	"testing"
 
-	"github.com/coinbase/step/handler"
 	"github.com/coinbase/step/utils/to"
 	"github.com/stretchr/testify/assert"
 )
@@ -71,38 +69,6 @@ func Test_Machine_SimplePassExample_With_Execute(t *testing.T) {
 	output, err = execute(json, to.Strp("{}"), t)
 	assert.NoError(t, err)
 	assert.Equal(t, output["a"], "b")
-}
-
-func Test_Machine_NoTaskShouldError(t *testing.T) {
-	json := []byte(`
-  {
-      "StartAt": "start",
-      "States": {
-        "start": {
-          "Type": "Task",
-          "End": true
-        }
-    }
-  }`)
-
-	_, err := execute(json, make(map[string]interface{}), t)
-	assert.Error(t, err)
-	assert.Equal(t, err.Error(), "TaskError(start): $.Task input is nil")
-}
-
-func Test_Machine_TaskFunctions(t *testing.T) {
-	sm, err := ParseFile("../examples/all_types.json")
-	assert.NoError(t, err)
-
-	sm.SetDefaultHandler()
-
-	tm := *sm.TaskFunctions()
-	res, err := handler.CallHandlerFunction(tm["Task"], context.Background(), map[string]interface{}{})
-
-	assert.NoError(t, err)
-
-	assert.Equal(t, res, map[string]string{})
-
 }
 
 func Test_Machine_ErrorUnknownState(t *testing.T) {

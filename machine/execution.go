@@ -73,15 +73,10 @@ func (sm *Execution) Succeeded() {
 // Path returns the Path of States, ignoreing TaskFn states
 func (sm *Execution) Path() []string {
 	path := []string{}
-	previous := ""
 	for _, er := range sm.ExecutionHistory {
 		if er.StateEnteredEventDetails != nil {
 			name := *er.StateEnteredEventDetails.Name
-			// Ignore the TaskFnName if equal to previous state
-			if name != TaskFnName(previous) {
-				path = append(path, name)
-			}
-			previous = name
+			path = append(path, name)
 		}
 	}
 	return path

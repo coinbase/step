@@ -11,24 +11,22 @@ import (
 
 type TestStruct struct {
 	Message *string
-	Task    *string
 }
 
 func Test_Handler_Execution(t *testing.T) {
 	called := false
 	testHandler := func(_ context.Context, ts *TestStruct) (interface{}, error) {
-		assert.Equal(t, ts.Task, to.Strp("Tester"))
 		assert.Equal(t, ts.Message, to.Strp("mmss"))
 		called = true
 		return "asd", nil
 	}
 
-	tm := TaskFunctions{"Tester": testHandler}
+	tm := TaskHandlers{"Tester": testHandler}
 	handle, err := CreateHandler(&tm)
 	assert.NoError(t, err)
 
 	var raw RawMessage
-	err = json.Unmarshal([]byte(`{"Task": "Tester", "Message": "mmss"}`), &raw)
+	err = json.Unmarshal([]byte(`{"Task": "Tester", "Input": {"Message": "mmss"}}`), &raw)
 	assert.NoError(t, err)
 
 	out, err := handle(nil, &raw)
@@ -39,7 +37,7 @@ func Test_Handler_Execution(t *testing.T) {
 }
 
 func Test_Handler_Failure(t *testing.T) {
-	tm := TaskFunctions{}
+	tm := TaskHandlers{}
 	handle, err := CreateHandler(&tm)
 	assert.NoError(t, err)
 

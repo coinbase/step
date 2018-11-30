@@ -18,6 +18,7 @@ type TaskState struct {
 	InputPath  *jsonpath.Path `json:",omitempty"`
 	OutputPath *jsonpath.Path `json:",omitempty"`
 	ResultPath *jsonpath.Path `json:",omitempty"`
+	Parameters interface{}    `json:",omitempty"`
 
 	Resource *string `json:",omitempty"`
 
@@ -25,18 +26,18 @@ type TaskState struct {
 	Retry []*Retrier `json:",omitempty"`
 
 	// Maps a Lambda Handler Function
-	ResourceFunction interface{} `json:"-"`
+	TaskHandler interface{} `json:"-"`
 
 	Next *string `json:",omitempty"`
 	End  *bool   `json:",omitempty"`
 }
 
-func (s *TaskState) SetResourceFunction(reasourcefn interface{}) {
-	s.ResourceFunction = reasourcefn
+func (s *TaskState) SetTaskHandler(reasourcefn interface{}) {
+	s.TaskHandler = reasourcefn
 }
 
 func (s *TaskState) process(ctx context.Context, input interface{}) (interface{}, *string, error) {
-	result, err := handler.CallHandlerFunction(s.ResourceFunction, ctx, input)
+	result, err := handler.CallHandlerFunction(s.TaskHandler, ctx, input)
 
 	if err != nil {
 		return nil, nil, err
@@ -52,7 +53,6 @@ func (s *TaskState) process(ctx context.Context, input interface{}) (interface{}
 }
 
 // Input must include the Task name in $.Task
-
 func (s *TaskState) Execute(ctx context.Context, input interface{}) (output interface{}, next *string, err error) {
 	return processError(s,
 		processCatcher(s.Catch,
@@ -60,7 +60,10 @@ func (s *TaskState) Execute(ctx context.Context, input interface{}) (output inte
 				inputOutput(
 					s.InputPath,
 					s.OutputPath,
-					result(s.ResultPath, s.process),
+					withParams(
+						s.Parameters,
+						result(s.ResultPath, s.process),
+					),
 				),
 			),
 		),
@@ -78,12 +81,12 @@ func (s *TaskState) Validate() error {
 		return fmt.Errorf("%v %v", errorPrefix(s), err)
 	}
 
-	if s.ResourceFunction == nil && s.Resource == nil {
+	if s.TaskHandler == nil && s.Resource == nil {
 		return fmt.Errorf("%v Requires Resource", errorPrefix(s))
 	}
 
-	if s.ResourceFunction != nil {
-		if err := handler.ValidateHandler(s.ResourceFunction); err != nil {
+	if s.TaskHandler != nil {
+		if err := handler.ValidateHandler(s.TaskHandler); err != nil {
 			return err
 		}
 	}

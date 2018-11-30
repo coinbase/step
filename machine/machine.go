@@ -49,13 +49,10 @@ func Validate(sm_json *string) error {
 }
 
 func (sm *StateMachine) FindTask(name string) (*state.TaskState, error) {
-	tasks := sm.Tasks()
-	task, ok := tasks[TaskFnName(name)]
+	task, ok := sm.Tasks()[name]
+
 	if !ok {
-		task, ok = sm.Tasks()[name]
-		if !ok {
-			return nil, fmt.Errorf("Handler Error: Cannot Find Task %v or %v", name, TaskFnName(name))
-		}
+		return nil, fmt.Errorf("Handler Error: Cannot Find Task %v", name)
 	}
 
 	return task, nil
@@ -70,14 +67,6 @@ func (sm *StateMachine) Tasks() map[string]*state.TaskState {
 		}
 	}
 	return tasks
-}
-
-func (sm *StateMachine) TaskFunctions() *handler.TaskFunctions {
-	tm := handler.TaskFunctions{}
-	for name, task := range sm.Tasks() {
-		tm[name] = task.ResourceFunction
-	}
-	return &tm
 }
 
 func (sm *StateMachine) AddState(s state.State) error {
@@ -102,17 +91,32 @@ func (sm *StateMachine) SetResource(lambda_arn *string) {
 
 func (sm *StateMachine) SetDefaultHandler() {
 	for _, task := range sm.Tasks() {
-		task.SetResourceFunction(DefaultHandler)
+		task.SetTaskHandler(DefaultHandler)
 	}
 }
 
-func (sm *StateMachine) SetResourceFunction(task_name string, resource_fn interface{}) error {
+func (sm *StateMachine) SetTaskFnHandlers(tfs *handler.TaskHandlers) error {
+	taskHandlers, err := handler.CreateHandler(tfs)
+	if err != nil {
+		return err
+	}
+
+	for name, _ := range *tfs {
+		if err := sm.SetTaskHandler(name, taskHandlers); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (sm *StateMachine) SetTaskHandler(task_name string, resource_fn interface{}) error {
 	task, err := sm.FindTask(task_name)
 	if err != nil {
 		return err
 	}
 
-	task.SetResourceFunction(resource_fn)
+	task.SetTaskHandler(resource_fn)
 	return nil
 }
 
@@ -144,31 +148,6 @@ func (sm *StateMachine) Validate() error {
 
 	// TODO: validate all states are reachable
 	return nil
-}
-
-func validateInput(s state.State, input interface{}) error {
-	if *s.GetType() != "Task" {
-		return nil
-	}
-
-	switch input.(type) {
-	case map[string]interface{}:
-		m := input.(map[string]interface{})
-		task, ok := m["Task"]
-		if !ok {
-			return &handler.TaskError{fmt.Sprintf("$.Task input is nil"), s.Name(), nil}
-		}
-
-		task_name := task.(string)
-		taskfn_name := TaskFnName(task_name)
-
-		if task_name == *s.Name() || taskfn_name == *s.Name() {
-			return nil
-		}
-
-		return &handler.TaskError{fmt.Sprintf("$.Task input doesn't equal %v or %v", task_name, taskfn_name), s.Name(), nil}
-	}
-	return &handler.TaskError{"Input wrong type", s.Name(), nil}
 }
 
 func (sm *StateMachine) DefaultLambdaContext(lambda_name string) context.Context {
@@ -238,10 +217,6 @@ func (sm *StateMachine) stateLoop(exec *Execution, next *string, input interface
 
 		if len(exec.ExecutionHistory) > 250 {
 			return nil, fmt.Errorf("State Overflow")
-		}
-
-		if err := validateInput(s, input); err != nil {
-			return nil, err
 		}
 
 		exec.EnteredEvent(s, input)

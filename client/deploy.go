@@ -51,11 +51,14 @@ func sendDeployToDeployer(sfnc aws.SFNAPI, name *string, release *deployer.Relea
 			Error *bifrost.ReleaseError `json:"error,omitempty"`
 		}
 
-		json.Unmarshal([]byte(*sd.LastOutput), &release_error)
-
 		fmt.Printf("\rExecution: %v", *ed.Status)
-		if release_error.Error != nil {
-			fmt.Printf("\nError: %v\nCause: %v\n", to.Strs(release_error.Error.Error), to.Strs(release_error.Error.Cause))
+
+		if sd.LastOutput != nil {
+			json.Unmarshal([]byte(*sd.LastOutput), &release_error)
+
+			if release_error.Error != nil {
+				fmt.Printf("\nError: %v\nCause: %v\n", to.Strs(release_error.Error.Error), to.Strs(release_error.Error.Cause))
+			}
 		}
 
 		return nil

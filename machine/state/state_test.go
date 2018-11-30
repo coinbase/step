@@ -82,7 +82,7 @@ func parseTaskState(b []byte, t *testing.T) *TaskState {
 
 func parseValidTaskState(b []byte, handler interface{}, t *testing.T) *TaskState {
 	state := parseTaskState(b, t)
-	state.SetResourceFunction(handler)
+	state.SetTaskHandler(handler)
 	assert.NoError(t, state.Validate())
 	return state
 }

@@ -15,7 +15,7 @@ We prefer to use AWS credentials exported via [assume-role](https://github.com/c
 
 ```bash
 # Use AWS Creds or assume-role
-./scripts/bootstrap
+./scripts/bootstrap_deployer
 ```
 
 To update the deployer you can use:

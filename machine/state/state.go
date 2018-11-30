@@ -189,6 +189,60 @@ func inputOutput(inputPath *jsonpath.Path, outputPath *jsonpath.Path, exec Execu
 	}
 }
 
+func withParams(params interface{}, exec Execution) Execution {
+	return func(ctx context.Context, input interface{}) (interface{}, *string, error) {
+		if params == nil {
+			return exec(ctx, input)
+		}
+		// Loop through the input replace values with JSON paths
+		input, err := replaceParamsJSONPath(params, input)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return exec(ctx, input)
+	}
+}
+
+func replaceParamsJSONPath(params interface{}, input interface{}) (interface{}, error) {
+
+	switch params.(type) {
+	case map[string]interface{}:
+
+		newParams := map[string]interface{}{}
+		// Recurse over params find keys to replace
+		for key, value := range params.(map[string]interface{}) {
+			if strings.HasSuffix(key, ".$") {
+				key = key[:len(key)-len(".$")]
+				// value must be a JSON path string!
+				switch value.(type) {
+				case string:
+				default:
+					return nil, fmt.Errorf("value to key %q is not string", key)
+				}
+				valueStr := value.(string)
+				path, err := jsonpath.NewPath(valueStr)
+				if err != nil {
+					return nil, err
+				}
+				newValue, err := path.Get(input)
+				if err != nil {
+					return nil, err
+				}
+				newParams[key] = newValue
+			} else {
+				newValue, err := replaceParamsJSONPath(value, input)
+				if err != nil {
+					return nil, err
+				}
+				newParams[key] = newValue
+			}
+		}
+		return newParams, nil
+	}
+	return params, nil
+}
+
 func result(resultPath *jsonpath.Path, exec Execution) Execution {
 	return func(ctx context.Context, input interface{}) (interface{}, *string, error) {
 		result, next, err := exec(ctx, input)

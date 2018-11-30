@@ -58,18 +58,8 @@ func JSON(state_machine *machine.StateMachine, err error) {
 	os.Exit(0)
 }
 
-// Lambda runs a state machine as a lambda
-func Lambda(state_machine *machine.StateMachine, err error) {
-	if err != nil {
-		fmt.Println("ERROR", err)
-		os.Exit(1)
-	}
-
-	LambdaTasks(state_machine.TaskFunctions())
-}
-
 // LambdaTasks takes task functions and and executes as a lambda
-func LambdaTasks(task_functions *handler.TaskFunctions) {
+func LambdaTasks(task_functions *handler.TaskHandlers) {
 	handler, err := handler.CreateHandler(task_functions)
 
 	if err != nil {

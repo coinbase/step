@@ -18,6 +18,7 @@ type TaskState struct {
 	InputPath  *jsonpath.Path `json:",omitempty"`
 	OutputPath *jsonpath.Path `json:",omitempty"`
 	ResultPath *jsonpath.Path `json:",omitempty"`
+	Parameters interface{}    `json:",omitempty"`
 
 	Resource *string `json:",omitempty"`
 
@@ -52,7 +53,6 @@ func (s *TaskState) process(ctx context.Context, input interface{}) (interface{}
 }
 
 // Input must include the Task name in $.Task
-
 func (s *TaskState) Execute(ctx context.Context, input interface{}) (output interface{}, next *string, err error) {
 	return processError(s,
 		processCatcher(s.Catch,
@@ -60,7 +60,10 @@ func (s *TaskState) Execute(ctx context.Context, input interface{}) (output inte
 				inputOutput(
 					s.InputPath,
 					s.OutputPath,
-					result(s.ResultPath, s.process),
+					withParams(
+						s.Parameters,
+						result(s.ResultPath, s.process),
+					),
 				),
 			),
 		),

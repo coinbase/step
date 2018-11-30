@@ -36,6 +36,10 @@ func ReturnMapTestHandler(_ context.Context, input interface{}) (interface{}, er
 	return map[string]interface{}{"z": "y"}, nil
 }
 
+func ReturnInputHandler(_ context.Context, input interface{}) (interface{}, error) {
+	return input, nil
+}
+
 // Execution
 
 func Test_TaskState_ValidateResource(t *testing.T) {
@@ -234,4 +238,29 @@ func Test_TaskState_Catch_AND_Dont_Retry(t *testing.T) {
 	}, t)
 
 	assert.Equal(t, 2, *calls)
+}
+
+func Test_TaskState_Parameters(t *testing.T) {
+	state := parseValidTaskState([]byte(`{
+		"Next": "Pass",
+		"Parameters": {"Task": "Noop", "Input.$": "$.x"}
+	}`), ReturnInputHandler, t)
+
+	testState(state, stateTestData{
+		Input:  map[string]interface{}{"x": "AHAH"},
+		Output: map[string]interface{}{"Task": "Noop", "Input": "AHAH"},
+	}, t)
+}
+
+func Test_TaskState_InputPath_and_Parameters(t *testing.T) {
+	state := parseValidTaskState([]byte(`{
+		"Next": "Pass",
+		"InputPath": "$.x",
+		"Parameters": {"Task": "Noop", "Input.$": "$"}
+	}`), ReturnInputHandler, t)
+
+	testState(state, stateTestData{
+		Input:  map[string]interface{}{"x": "AHAH"},
+		Output: map[string]interface{}{"Task": "Noop", "Input": "AHAH"},
+	}, t)
 }

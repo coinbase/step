@@ -116,30 +116,10 @@ func validateArguments(handler reflect.Type) error {
 //////
 
 // RawMessage is the struct passed to the Lambda Handler
-// It contains the RawMessage and the Raw bytes sent to the lambda handler
+// It contains the name of the Task and the Inputs Raw message
 type RawMessage struct {
-	Task *string
-	Raw  []byte
-}
-
-type typeMessage struct {
-	Task *string
-}
-
-// UnmarshalJSON unmarshalls a RawMessage by attaching the type message to the Raw input
-func (smm *RawMessage) UnmarshalJSON(b []byte) error {
-	var tmp typeMessage
-	err := json.Unmarshal(b, &tmp)
-
-	if err != nil {
-		return err
-	}
-
-	// Assign the raw json to the message
-	smm.Task = tmp.Task
-	smm.Raw = b
-
-	return nil
+	Task  *string
+	Input json.RawMessage
 }
 
 ///////////
@@ -195,7 +175,7 @@ func CreateHandler(tm *TaskFunctions) (func(context context.Context, input *RawM
 			return nil, &TaskError{"Cannot Find Task", task_name, tm.Tasks()}
 		}
 
-		return CallHandler(reflection, ctx, input.Raw)
+		return CallHandler(reflection, ctx, input.Input)
 	}
 
 	return handler, nil

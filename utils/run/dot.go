@@ -54,9 +54,6 @@ func processState(s state.State) string {
 	switch s.(type) {
 	case *state.PassState:
 		sstate := s.(*state.PassState)
-		if *sstate.Next == machine.TaskFnName(name) {
-			return "" // Skip if TaskFn Pass
-		}
 		strs = append(strs, fmt.Sprintf(`%q [fillcolor="#FBFBFB"]`, name))
 		if sstate.Next != nil {
 			strs = append(strs, fmt.Sprintf(`%q -> %q [weight=100]`, name, *sstate.Next))
@@ -67,7 +64,6 @@ func processState(s state.State) string {
 
 	case *state.TaskState:
 		sstate := s.(*state.TaskState)
-		name = machine.RemoveTaskFnName(name)
 		strs = append(strs, fmt.Sprintf(`%q [fillcolor="#FBFBFB"]`, name))
 
 		if sstate.Retry != nil {

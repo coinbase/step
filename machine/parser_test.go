@@ -52,29 +52,17 @@ func Test_Parser_Expands_TaskFn(t *testing.T) {
 
 	// Names and Types
 	assert.Equal(t, len(sm.States), 4)
-	assert.Equal(t, *sm.States["A"].GetType(), "Pass")
-	assert.Equal(t, *sm.States[TaskFnName("A")].GetType(), "Task")
+	assert.Equal(t, *sm.States["A"].GetType(), "Task")
 
-	assert.Equal(t, *sm.States["B"].GetType(), "Pass")
-	assert.Equal(t, *sm.States[TaskFnName("B")].GetType(), "Task")
+	assert.Equal(t, *sm.States["B"].GetType(), "Task")
 
-	a_state := sm.States["A"].(*state.PassState)
-	atask_state := sm.States[TaskFnName("A")].(*state.TaskState)
+	atask_state := sm.States["A"].(*state.TaskState)
 
-	b_state := sm.States["B"].(*state.PassState)
-	btask_state := sm.States[TaskFnName("B")].(*state.TaskState)
+	btask_state := sm.States["B"].(*state.TaskState)
 
 	// ORDER
-	assert.Equal(t, *a_state.Next, TaskFnName("A"))
-	assert.Equal(t, *atask_state.Next, "B")
-	assert.Equal(t, *b_state.Next, TaskFnName("B"))
-	assert.Equal(t, *btask_state.End, true)
-
-	// Passing the right things
-	assert.Equal(t, a_state.Result.(string), "A")
-	path, err := to.PrettyJSON(a_state.ResultPath)
-	assert.NoError(t, err)
-	assert.Equal(t, path, `"$.Task"`)
+	assert.Equal(t, *a_state.Parameters, map[string][string]{"Task": "A", "Input.$": "$"}))
+	assert.Equal(t, *b_state.Parameters, map[string][string]{"Task": "A", "Input.$": "$"}))
 }
 
 func Test_Machine_Parser_FileNonexistantFile(t *testing.T) {

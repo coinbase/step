@@ -5,26 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"strings"
-
-	"github.com/coinbase/step/jsonpath"
 
 	"github.com/coinbase/step/machine/state"
-	"github.com/coinbase/step/utils/to"
 )
-
-var TaskFnFmt = "_%v_"
-
-func TaskFnName(name string) string {
-	return fmt.Sprintf(TaskFnFmt, name)
-}
-
-func RemoveTaskFnName(name string) string {
-	if strings.HasPrefix(name, "_") && strings.HasSuffix(name, "_") {
-		return name[1 : len(name)-1]
-	}
-	return name
-}
 
 // Takes a file, and a map of Task Function s
 func ParseFile(file string) (*StateMachine, error) {
@@ -145,29 +128,12 @@ func unmarshallState(name string, raw_json *json.RawMessage) ([]state.State, err
 		err = json.Unmarshal(*raw_json, &s)
 		newState = &s
 	case "TaskFn":
-		// This is a custom state that expands to a Pass -> Task
-		taskName := TaskFnName(name)
-
-		path, _ := jsonpath.NewPath("$.Task")
-		passState := state.PassState{
-			Type:       to.Strp("Pass"),
-			ResultPath: path,
-			Result:     name,
-			Next:       &taskName,
-		}
-
-		var taskState state.TaskState
-		err = json.Unmarshal(*raw_json, &taskState)
-		if err != nil {
-			return nil, err
-		}
-
-		// Set Name and Defaults
-		taskState.Type = to.Strp("Task")
-		taskState.SetName(&taskName)
-		passState.SetName(&name)
-
-		return []state.State{&passState, &taskState}, nil
+		// This is a custom state that adds values to Task to be handled
+		var s state.TaskState
+		err = json.Unmarshal(*raw_json, &s)
+		// This will inject the Task name into the input
+		s.Parameters = map[string]interface{}{"Task": name, "Input.$": "$"}
+		newState = &s
 	default:
 		err = fmt.Errorf("Unknown State %q", state_type.Type)
 	}

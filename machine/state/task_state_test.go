@@ -83,7 +83,7 @@ func Test_TaskState_Valid_ErrorEquals_StatesAll(t *testing.T) {
 func Test_TaskState_TaskHandler(t *testing.T) {
 	th, calls := countCalls(ReturnMapTestHandler)
 
-	state := parseValidTaskState([]byte(`{ "Next": "Pass"}`), th, t)
+	state := parseValidTaskState([]byte(`{ "Next": "Pass", "Resource": "test"}`), th, t)
 
 	testState(state, stateTestData{
 		Input:  map[string]interface{}{"a": "c"},
@@ -96,6 +96,7 @@ func Test_TaskState_TaskHandler(t *testing.T) {
 func Test_TaskState_Catch_Works(t *testing.T) {
 	state := parseValidTaskState([]byte(`{
 		"Next": "Pass",
+		"Resource": "test",
 		"Catch": [{
 			"ErrorEquals": ["TestError"],
 			"Next": "Fail"
@@ -112,6 +113,7 @@ func Test_TaskState_Catch_Works(t *testing.T) {
 func Test_TaskState_Catch_Doesnt_Catch(t *testing.T) {
 	state := parseValidTaskState([]byte(`{
 		"Next": "Pass",
+		"Resource": "test",
 		"Catch": [{
 			"ErrorEquals": ["NotTestError"],
 			"Next": "Fail"
@@ -129,6 +131,7 @@ func Test_TaskState_Retry_Works(t *testing.T) {
 
 	state := parseValidTaskState([]byte(`{
 		"Next": "Pass",
+		"Resource": "test",
 		"Retry": [{
 			"ErrorEquals": ["TestError"],
 			"MaxAttempts": 2
@@ -159,6 +162,7 @@ func Test_TaskState_Catch_AND_Retry_Works(t *testing.T) {
 
 	state := parseValidTaskState([]byte(`{
 		"Next": "Pass",
+		"Resource": "test",
 		"Retry": [{
 			"ErrorEquals": ["TestError"],
 			"MaxAttempts": 1
@@ -187,6 +191,7 @@ func Test_TaskState_Catch_AND_Retry_StateAll(t *testing.T) {
 
 	state := parseValidTaskState([]byte(`{
 		"Next": "Pass",
+		"Resource": "test",
 		"Retry": [{
 			"ErrorEquals": ["States.ALL"],
 			"MaxAttempts": 1
@@ -215,6 +220,7 @@ func Test_TaskState_Catch_AND_Dont_Retry(t *testing.T) {
 
 	state := parseValidTaskState([]byte(`{
 		"Next": "Pass",
+		"Resource": "test",
 		"Retry": [{
 			"ErrorEquals": ["TestError"],
 			"MaxAttempts": 1
@@ -243,6 +249,7 @@ func Test_TaskState_Catch_AND_Dont_Retry(t *testing.T) {
 func Test_TaskState_Parameters(t *testing.T) {
 	state := parseValidTaskState([]byte(`{
 		"Next": "Pass",
+		"Resource": "test",
 		"Parameters": {"Task": "Noop", "Input.$": "$.x"}
 	}`), ReturnInputHandler, t)
 
@@ -255,6 +262,7 @@ func Test_TaskState_Parameters(t *testing.T) {
 func Test_TaskState_InputPath_and_Parameters(t *testing.T) {
 	state := parseValidTaskState([]byte(`{
 		"Next": "Pass",
+		"Resource": "test",
 		"InputPath": "$.x",
 		"Parameters": {"Task": "Noop", "Input.$": "$"}
 	}`), ReturnInputHandler, t)

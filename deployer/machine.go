@@ -14,6 +14,7 @@ func StateMachine() (*machine.StateMachine, error) {
     "States": {
       "Validate": {
         "Type": "TaskFn",
+        "Resource": "arn:aws:lambda:{{aws_region}}:{{aws_account}}:function:{{lambda_name}}",
         "Comment": "Validate and Set Defaults",
         "Next": "Lock",
         "Catch": [
@@ -27,6 +28,7 @@ func StateMachine() (*machine.StateMachine, error) {
       },
       "Lock": {
         "Type": "TaskFn",
+        "Resource": "arn:aws:lambda:{{aws_region}}:{{aws_account}}:function:{{lambda_name}}",
         "Comment": "Grab Lock",
         "Next": "ValidateResources",
         "Catch": [
@@ -46,6 +48,7 @@ func StateMachine() (*machine.StateMachine, error) {
       },
       "ValidateResources": {
         "Type": "TaskFn",
+        "Resource": "arn:aws:lambda:{{aws_region}}:{{aws_account}}:function:{{lambda_name}}",
         "Comment": "ValidateResources",
         "Next": "Deploy",
         "Catch": [
@@ -59,6 +62,7 @@ func StateMachine() (*machine.StateMachine, error) {
       },
       "Deploy": {
         "Type": "TaskFn",
+        "Resource": "arn:aws:lambda:{{aws_region}}:{{aws_account}}:function:{{lambda_name}}",
         "Comment": "Upload Step-Function and Lambda",
         "Next": "Success",
         "Catch": [
@@ -78,6 +82,7 @@ func StateMachine() (*machine.StateMachine, error) {
       },
       "ReleaseLockFailure": {
         "Type": "TaskFn",
+        "Resource": "arn:aws:lambda:{{aws_region}}:{{aws_account}}:function:{{lambda_name}}",
         "Comment": "Release the Lock and Fail",
         "Next": "FailureClean",
         "Retry": [ {
@@ -111,11 +116,11 @@ func StateMachine() (*machine.StateMachine, error) {
 
 // TaskHandlers returns
 func TaskHandlers() *handler.TaskHandlers {
-	return CreateTaskFunctinons(&aws.Clients{})
+	return CreateTaskFunctions(&aws.Clients{})
 }
 
-// CreateTaskFunctinons returns
-func CreateTaskFunctinons(awsc aws.AwsClients) *handler.TaskHandlers {
+// CreateTaskFunctions returns
+func CreateTaskFunctions(awsc aws.AwsClients) *handler.TaskHandlers {
 	tm := handler.TaskHandlers{}
 	tm["Validate"] = ValidateHandler(awsc)
 	tm["Lock"] = LockHandler(awsc)

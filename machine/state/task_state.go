@@ -32,8 +32,8 @@ type TaskState struct {
 	End  *bool   `json:",omitempty"`
 }
 
-func (s *TaskState) SetTaskHandler(reasourcefn interface{}) {
-	s.TaskHandler = reasourcefn
+func (s *TaskState) SetTaskHandler(resourcefn interface{}) {
+	s.TaskHandler = resourcefn
 }
 
 func (s *TaskState) process(ctx context.Context, input interface{}) (interface{}, *string, error) {
@@ -81,7 +81,7 @@ func (s *TaskState) Validate() error {
 		return fmt.Errorf("%v %v", errorPrefix(s), err)
 	}
 
-	if s.TaskHandler == nil && s.Resource == nil {
+	if s.Resource == nil {
 		return fmt.Errorf("%v Requires Resource", errorPrefix(s))
 	}
 

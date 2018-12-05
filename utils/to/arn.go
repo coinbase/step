@@ -23,6 +23,19 @@ func RoleArn(account_id *string, name_or_arn *string) *string {
 	return createArn("arn:aws:iam::%v%v:role/%v", account_id, Strp(""), name_or_arn)
 }
 
+// InterpolateArnVariables replaces any resource parameter templates with the appropriate values
+func InterpolateArnVariables(state_machine *string, region *string, account_id *string, name_or_arn *string) *string {
+	variableTemplate := map[string]*string{
+		"{{aws_account}}": account_id,
+		"{{aws_region}}":  region,
+		"{{lambda_name}}": name_or_arn,
+	}
+	for k, v := range variableTemplate {
+		*state_machine = strings.Replace(*state_machine, k, *v, -1)
+	}
+	return state_machine
+}
+
 func ArnPath(arn string) string {
 	_, _, res := ArnRegionAccountResource(arn)
 

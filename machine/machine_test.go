@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func loadFixtrure(file string, t *testing.T) *StateMachine {
+func loadFixture(file string, t *testing.T) *StateMachine {
 	example_machine, err := ParseFile(file)
 	assert.NoError(t, err)
 	return example_machine
@@ -26,7 +26,7 @@ func execute(json []byte, input interface{}, t *testing.T) (map[string]interface
 }
 
 func executeFixture(file string, input map[string]interface{}, t *testing.T) map[string]interface{} {
-	example_machine := loadFixtrure(file, t)
+	example_machine := loadFixture(file, t)
 
 	exec, err := example_machine.Execute(input)
 
@@ -72,7 +72,7 @@ func Test_Machine_SimplePassExample_With_Execute(t *testing.T) {
 }
 
 func Test_Machine_ErrorUnknownState(t *testing.T) {
-	example_machine := loadFixtrure("../examples/bad_unknown_state.json", t)
+	example_machine := loadFixture("../examples/bad_unknown_state.json", t)
 	_, err := example_machine.Execute(make(map[string]interface{}))
 
 	assert.Error(t, err)

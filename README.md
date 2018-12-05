@@ -52,7 +52,7 @@ func StateMachine(lambdaArn string) (machine.StateMachine, error) {
 Each `TaskFn` must have a handler that implements `func(context.Context, <input_type>) (interface{}, error)`. These are defined like:
 
 ```go
-func CreateTaskFunctinons() *handler.TaskHandlers {
+func CreateTaskFunctions() *handler.TaskHandlers {
   tm := handler.TaskHandlers{}
   // Assign Hello state the HelloHandler
 	tm["Hello"] = HelloHandler

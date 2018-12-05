@@ -81,7 +81,7 @@ func (s *TaskState) Validate() error {
 		return fmt.Errorf("%v %v", errorPrefix(s), err)
 	}
 
-	if s.TaskHandler == nil && s.Resource == nil {
+	if s.Resource == nil {
 		return fmt.Errorf("%v Requires Resource", errorPrefix(s))
 	}
 

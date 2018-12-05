@@ -6,7 +6,6 @@ import (
 	"github.com/coinbase/step/aws"
 	"github.com/coinbase/step/aws/s3"
 	"github.com/coinbase/step/deployer"
-	"github.com/coinbase/step/machine"
 	"github.com/coinbase/step/utils/to"
 )
 
@@ -21,15 +20,13 @@ func PrepareRelease(release *deployer.Release, zip_file_path *string) error {
 	}
 	release.LambdaSHA256 = &lambda_sha
 
-	// Add the lambda resource to Tasks with nil resource
-	state_machine, err := machine.FromJSON([]byte(*release.StateMachineJSON))
-	if err != nil {
-		return err
-	}
-
-	lambda_arn := to.LambdaArn(release.AwsRegion, release.AwsAccountID, release.LambdaName)
-	state_machine.SetResource(lambda_arn)
-	release.StateMachineJSON = to.Strp(to.CompactJSONStr(state_machine))
+	// Interpolate variables for resource strings
+	release.StateMachineJSON = to.InterpolateArnVariables(
+		release.StateMachineJSON,
+		release.AwsRegion,
+		release.AwsAccountID,
+		release.LambdaName,
+	)
 
 	return nil
 }

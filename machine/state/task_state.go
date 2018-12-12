@@ -31,8 +31,8 @@ type TaskState struct {
 	Next *string `json:",omitempty"`
 	End  *bool   `json:",omitempty"`
 
-	TimeoutSeconds   *string `json:",omitempty"`
-	HeartbeatSeconds *string `json:",omitempty"`
+	TimeoutSeconds   int `json:",omitempty"`
+	HeartbeatSeconds int `json:",omitempty"`
 }
 
 func (s *TaskState) SetTaskHandler(resourcefn interface{}) {

@@ -32,6 +32,21 @@ func Test_Put_Success(t *testing.T) {
 	assert.Equal(t, "asdji", string(*out))
 }
 
+func Test_Put_With_Type_Success(t *testing.T) {
+	s3c := &mocks.MockS3Client{}
+	bucket := to.Strp("bucket")
+	key := to.Strp("/path")
+	content := []byte("<html></html>")
+	contentType := to.Strp("text/html")
+	err := PutWithType(s3c, bucket, key, &content, contentType)
+	assert.NoError(t, err)
+
+	object, out, err := GetObject(s3c, bucket, key)
+	assert.NoError(t, err)
+	assert.Equal(t, "<html></html>", string(*out))
+	assert.Equal(t, "text/html", string(*object.ContentType))
+}
+
 func Test_Delete_Success(t *testing.T) {
 	s3c := &mocks.MockS3Client{}
 	bucket := to.Strp("bucket")

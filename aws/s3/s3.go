@@ -111,6 +111,20 @@ func Put(s3c aws.S3API, bucket *string, path *string, content *[]byte) error {
 	})
 }
 
+func PutWithType(s3c aws.S3API, bucket *string, path *string, content *[]byte, contentType *string) error {
+	if content == nil {
+		return fmt.Errorf("Put content is nil")
+	}
+
+	return put(s3c, &s3.PutObjectInput{
+		Bucket:      bucket,
+		Key:         path,
+		Body:        bytes.NewReader(*content),
+		ACL:         to.Strp("private"),
+		ContentType: contentType,
+	})
+}
+
 func PutStr(s3c aws.S3API, bucket *string, path *string, content *string) error {
 	if content == nil {
 		return fmt.Errorf("PutStr content is nil")

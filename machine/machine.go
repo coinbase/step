@@ -26,12 +26,16 @@ var EmptyStateMachine = `{
 
 // IMPLEMENTATION
 
+// States is the collection of states
+type States map[string]state.State
+
+// StateMachine the core struct for the machine
 type StateMachine struct {
 	Comment *string `json:",omitempty"`
 
 	StartAt *string
 
-	States map[string]state.State
+	States States
 }
 
 // Global Methods
@@ -67,18 +71,6 @@ func (sm *StateMachine) Tasks() map[string]*state.TaskState {
 		}
 	}
 	return tasks
-}
-
-func (sm *StateMachine) AddState(s state.State) error {
-	_, ok := sm.States[*s.Name()]
-
-	if ok {
-		return fmt.Errorf("Already added the state")
-	}
-
-	sm.States[*s.Name()] = s
-
-	return nil
 }
 
 func (sm *StateMachine) SetResource(lambda_arn *string) {

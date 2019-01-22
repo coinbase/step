@@ -27,65 +27,33 @@ func FromJSON(raw []byte) (*StateMachine, error) {
 	return &sm, err
 }
 
-type basicMachine struct {
-	Comment *string
-	StartAt *string
-}
-
-// from http://gregtrowbridge.com/golang-json-serialization-with-interfaces/
-func (sm *StateMachine) UnmarshalJSON(b []byte) error {
-	// First, deserialize StateMachine fields
-	var bsm basicMachine
-	err := json.Unmarshal(b, &bsm)
-	if err != nil {
-		return err
-	}
-	sm.Comment = bsm.Comment
-	sm.StartAt = bsm.StartAt
-
+func (sm *States) UnmarshalJSON(b []byte) error {
 	// States
-	var objMap map[string]*json.RawMessage
-	err = json.Unmarshal(b, &objMap)
+	var rawStates map[string]*json.RawMessage
+	err := json.Unmarshal(b, &rawStates)
+
 	if err != nil {
 		return err
 	}
 
-	var initStates map[string]*json.RawMessage
-
-	if val, ok := objMap["States"]; ok {
-		err = json.Unmarshal(*val, &initStates)
+	newStates := States{}
+	for name, raw := range rawStates {
+		states, err := unmarshallState(name, raw)
 		if err != nil {
 			return err
 		}
 
-		sm.States = map[string]state.State{}
-		err = unmarshallStates(sm, initStates)
-		if err != nil {
-			return err
+		for _, s := range states {
+			newStates[*s.Name()] = s
 		}
 	}
 
+	*sm = newStates
 	return nil
 }
 
 type stateType struct {
 	Type string
-}
-
-func unmarshallStates(sm *StateMachine, initStates map[string]*json.RawMessage) error {
-	for name, raw_json := range initStates {
-		states, err := unmarshallState(name, raw_json)
-		if err != nil {
-			return err
-		}
-		for _, state := range states {
-			if err := sm.AddState(state); err != nil {
-				return err
-			}
-		}
-	}
-
-	return nil
 }
 
 func unmarshallState(name string, raw_json *json.RawMessage) ([]state.State, error) {

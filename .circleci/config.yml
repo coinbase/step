@@ -6,7 +6,6 @@ jobs:
     working_directory: /go/src/github.com/coinbase/step
     steps:
       - checkout
-      - run: export GO111MODULE=on
-      - run: go mod download
-      - run: go test ./...
+      - run: export GO111MODULE=on && go mod download
+      - run: export GO111MODULE=on && go test ./...
 

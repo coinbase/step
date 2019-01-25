@@ -201,6 +201,12 @@ func (e *Execution) WaitForExecution(sfnc sfniface.SFNAPI, sleep int, fn Executi
 	for {
 		exec, state, err := GetDetails(sfnc, e.ExecutionArn)
 
+		// Copy allowed values over
+		e.Output = exec.Output
+		e.StartDate = exec.StartDate
+		e.Status = exec.Status
+		e.StopDate = exec.StopDate
+
 		err = fn(exec, state, err)
 
 		if err != nil {

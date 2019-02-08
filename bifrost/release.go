@@ -168,6 +168,11 @@ func (r *Release) ReleasePath() *string {
 	return &s
 }
 
+func (release *Release) LogPath() *string {
+	s := fmt.Sprintf("%v/log", *release.ReleaseDir())
+	return &s
+}
+
 ///////
 // Errors
 ///////
@@ -295,4 +300,42 @@ func (r *Release) ExecutionPrefix() string {
 // ExecutionName returns
 func (r *Release) ExecutionName() *string {
 	return to.TimeUUID(r.ExecutionPrefix())
+}
+
+///////
+// Log
+///////
+
+func (release *Release) WriteLog(s3c aws.S3API, log string) error {
+	if err := s3.PutStr(s3c, release.Bucket, release.LogPath(), &log); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (release *Release) AppendLog(s3c aws.S3API, log string) error {
+	logFile, err := s3.GetStr(s3c, release.Bucket, release.LogPath())
+
+	if err != nil {
+		switch err.(type) {
+		case *s3.NotFoundError:
+			// no log yet
+			logFile = to.Strp("")
+		default:
+			return err // All other errors return
+		}
+	}
+	// doubly sure
+	if logFile == nil {
+		logFile = to.Strp("")
+	}
+
+	allLog := fmt.Sprintf("%v\n%v", *logFile, log)
+
+	if err := s3.PutStr(s3c, release.Bucket, release.LogPath(), &allLog); err != nil {
+		return err
+	}
+
+	return nil
 }

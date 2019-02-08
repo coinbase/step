@@ -53,6 +53,14 @@ func Get(s3c aws.S3API, bucket *string, path *string) (*[]byte, error) {
 	return body, err
 }
 
+func GetStr(s3c aws.S3API, bucket *string, path *string) (*string, error) {
+	_, body, err := GetObject(s3c, bucket, path)
+	if err != nil {
+		return nil, err
+	}
+	return to.Strp(string(*body)), nil
+}
+
 func GetObject(s3c aws.S3API, bucket *string, path *string) (*s3.GetObjectOutput, *[]byte, error) {
 	return get(s3c, &s3.GetObjectInput{
 		Bucket: bucket,

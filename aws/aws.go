@@ -52,11 +52,18 @@ func (c Clients) Config(
 	account_id *string,
 	role *string) *aws.Config {
 
-	// return no config for nil inputs
-	if account_id == nil || region == nil || role == nil {
-		return nil
+	config := aws.NewConfig().WithMaxRetries(10)
+
+	if region != nil {
+		config = config.WithRegion(*region)
 	}
 
+	// return no config for nil inputs
+	if account_id == nil || role == nil {
+		return config
+	}
+
+	// Assume a role
 	arn := fmt.Sprintf(
 		"arn:aws:iam::%v:role/%v",
 		*account_id,
@@ -75,10 +82,7 @@ func (c Clients) Config(
 	creds := stscreds.NewCredentials(c.Session(), arn)
 
 	// new config
-	config := aws.NewConfig().
-		WithCredentials(creds).
-		WithRegion(*region).
-		WithMaxRetries(10)
+	config = config.WithCredentials(creds)
 
 	if c.configs == nil {
 		c.configs = map[string]*aws.Config{}

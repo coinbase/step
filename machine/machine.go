@@ -207,7 +207,7 @@ func (sm *StateMachine) stateLoop(exec *Execution, next *string, input interface
 			return nil, fmt.Errorf("Unknown State: %v", *next)
 		}
 
-		if len(exec.ExecutionHistory) > 250 {
+		if len(exec.ExecutionHistory) > 25000 {
 			return nil, fmt.Errorf("State Overflow")
 		}
 

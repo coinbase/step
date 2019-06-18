@@ -53,17 +53,21 @@ func ArnPath(arn string) string {
 	}
 }
 
-func AwsRegionAccountFromContext(ctx context.Context) (*string, *string) {
+func LambdaArnFromContext(ctx context.Context) (string, error) {
 	lc, ok := lambdacontext.FromContext(ctx)
-	if !ok {
+	if !ok || lc == nil {
+		return "", fmt.Errorf("Incorrect Lambda Context")
+	}
+
+	return lc.InvokedFunctionArn, nil
+}
+
+func AwsRegionAccountFromContext(ctx context.Context) (*string, *string) {
+	arn, err := LambdaArnFromContext(ctx)
+	if err != nil {
 		return nil, nil
 	}
 
-	if lc == nil {
-		return nil, nil
-	}
-
-	arn := lc.InvokedFunctionArn
 	region, account, _ := ArnRegionAccountResource(arn)
 	return &region, &account
 }

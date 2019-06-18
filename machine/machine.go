@@ -94,6 +94,9 @@ func (sm *StateMachine) SetTaskFnHandlers(tfs *handler.TaskHandlers) error {
 	}
 
 	for name, _ := range *tfs {
+		if name == "" {
+			continue // Skip default Handler
+		}
 		if err := sm.SetTaskHandler(name, taskHandlers); err != nil {
 			return err
 		}

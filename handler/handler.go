@@ -39,6 +39,9 @@ func CreateTaskReflection(handlerSymbol interface{}) TaskReflection {
 func (t *TaskHandlers) Tasks() []string {
 	keys := []string{}
 	for key, _ := range *t {
+		if key == "" {
+			continue
+		}
 		keys = append(keys, key)
 	}
 	return keys
@@ -120,6 +123,23 @@ func validateArguments(handler reflect.Type) error {
 type RawMessage struct {
 	Task  *string
 	Input json.RawMessage
+	raw   []byte
+}
+
+func (message *RawMessage) UnmarshalJSON(data []byte) error {
+	type xRawMessage RawMessage
+	var rawMessageX xRawMessage
+
+	if err := json.Unmarshal(data, &rawMessageX); err != nil {
+		return err
+	}
+
+	*message = RawMessage{
+		Task:  rawMessageX.Task,
+		Input: rawMessageX.Input,
+		raw:   data,
+	}
+	return nil
 }
 
 ///////////
@@ -166,7 +186,13 @@ func CreateHandler(tm *TaskHandlers) (func(context context.Context, input *RawMe
 		// Find Resource Handler
 		task_name := input.Task
 		if task_name == nil {
-			return nil, &TaskError{"Nil Task In Message", nil, nil}
+			// If task_name cannot be found look for empty string (NoTask) handler
+			reflection, ok := reflections[""]
+			if !ok {
+				return nil, &TaskError{"Nil Task In Message", nil, nil}
+			}
+			// call NoTask handler
+			return CallHandler(reflection, ctx, input.raw)
 		}
 
 		reflection, ok := reflections[*task_name]
@@ -233,7 +259,6 @@ func CallHandler(reflection TaskReflection, ctx context.Context, input []byte) (
 
 // CallHandlerFunction does reflection inline and should only be used for testing
 func CallHandlerFunction(handlerSymbol interface{}, ctx context.Context, input interface{}) (interface{}, error) {
-
 	if err := ValidateHandler(handlerSymbol); err != nil {
 		return nil, err
 	}

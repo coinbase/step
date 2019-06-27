@@ -36,6 +36,48 @@ func Test_Handler_Execution(t *testing.T) {
 	assert.Equal(t, out, "asd")
 }
 
+func Test_Handler_Execution_with_TaskHandler_and_NoTaskHandler(t *testing.T) {
+	nthCalled := false
+	thCalled := false
+
+	noTaskHandler := func(_ context.Context, ts *TestStruct) (interface{}, error) {
+		assert.Equal(t, ts.Message, to.Strp("mmss"))
+		nthCalled = true
+		return "nth", nil
+	}
+
+	taskHandler := func(_ context.Context, ts *TestStruct) (interface{}, error) {
+		assert.Equal(t, ts.Message, to.Strp("mmss"))
+		thCalled = true
+		return "th", nil
+	}
+
+	tm := TaskHandlers{"": noTaskHandler, "Tester": taskHandler}
+
+	handle, err := CreateHandler(&tm)
+	assert.NoError(t, err)
+
+	var rawNth RawMessage
+	err = json.Unmarshal([]byte(`{"Message": "mmss"}`), &rawNth)
+	assert.NoError(t, err)
+
+	var rawTh RawMessage
+	err = json.Unmarshal([]byte(`{"Task": "Tester", "Input": {"Message": "mmss"}}`), &rawTh)
+	assert.NoError(t, err)
+
+	outNth, err := handle(nil, &rawNth)
+	assert.NoError(t, err)
+
+	outTh, err := handle(nil, &rawTh)
+	assert.NoError(t, err)
+
+	assert.True(t, nthCalled)
+	assert.True(t, thCalled)
+
+	assert.Equal(t, outNth, "nth")
+	assert.Equal(t, outTh, "th")
+}
+
 func Test_Handler_Failure(t *testing.T) {
 	tm := TaskHandlers{}
 	handle, err := CreateHandler(&tm)

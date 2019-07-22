@@ -22,6 +22,7 @@ func MockRelease() *Release {
 		Bucket:       to.Strp("bucket"),
 	}
 }
+
 func MockAwsClients(r *Release) *mocks.MockClients {
 	awsc := mocks.MockAwsClients()
 
@@ -33,6 +34,19 @@ func MockAwsClients(r *Release) *mocks.MockClients {
 	r.SetDefaults(r.AwsRegion, r.AwsAccountID, "")
 
 	return awsc
+}
+
+func TestReleasePaths(t *testing.T) {
+	release := MockRelease()
+	release.ReleaseID = to.Strp("id")
+
+	assert.Equal(t, "account/project", *release.ProjectDir())
+	assert.Equal(t, "account/project/config", *release.RootDir())
+	assert.Equal(t, "account/project/config/id", *release.ReleaseDir())
+	assert.Equal(t, "account/project/config/id/release", *release.ReleasePath())
+	assert.Equal(t, "account/project/config/id/log", *release.LogPath())
+	assert.Equal(t, "account/project/config/lock", *release.LockPath())
+	assert.Equal(t, "account/project/_shared", *release.SharedProjectDir())
 }
 
 func Test_Bifrost_Release_Is_Valid(t *testing.T) {

@@ -153,8 +153,13 @@ func (r *Release) SetDefaults(region *string, account *string, bucket_prefix str
 // Paths
 ///////
 
+func (r *Release) ProjectDir() *string {
+	s := fmt.Sprintf("%v/%v", *r.AwsAccountID, *r.ProjectName)
+	return &s
+}
+
 func (r *Release) RootDir() *string {
-	s := fmt.Sprintf("%v/%v/%v", *r.AwsAccountID, *r.ProjectName, *r.ConfigName)
+	s := fmt.Sprintf("%v/%v", *r.ProjectDir(), *r.ConfigName)
 	return &s
 }
 
@@ -170,6 +175,11 @@ func (r *Release) ReleasePath() *string {
 
 func (release *Release) LogPath() *string {
 	s := fmt.Sprintf("%v/log", *release.ReleaseDir())
+	return &s
+}
+
+func (r *Release) SharedProjectDir() *string {
+	s := fmt.Sprintf("%v/_shared", *r.ProjectDir())
 	return &s
 }
 

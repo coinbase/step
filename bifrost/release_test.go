@@ -45,7 +45,8 @@ func TestReleasePaths(t *testing.T) {
 	assert.Equal(t, "account/project/config/id", *release.ReleaseDir())
 	assert.Equal(t, "account/project/config/id/release", *release.ReleasePath())
 	assert.Equal(t, "account/project/config/id/log", *release.LogPath())
-	assert.Equal(t, "account/project/config/lock", *release.LockPath())
+	assert.Equal(t, "account/project/config/lock", *release.RootLockPath())
+	assert.Equal(t, "account/project/config/id/lock", *release.ReleaseLockPath())
 	assert.Equal(t, "account/project/_shared", *release.SharedProjectDir())
 }
 

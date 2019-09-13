@@ -114,9 +114,30 @@ func Test_DeployHandler_Execution_Errors_Release(t *testing.T) {
 	}, exec.Path())
 }
 
-func Test_DeployHandler_Execution_Errors_CreatedAt(t *testing.T) {
+func Test_DeployHandler_Execution_Errors_CreatedAt_Future(t *testing.T) {
 	release := MockRelease()
-	release.CreatedAt = to.Timep(time.Now().Add(300 * time.Hour))
+	release.CreatedAt = to.Timep(time.Now().Add(1 * time.Hour))
+
+	awsc := MockAwsClients(release)
+
+	state_machine := createTestStateMachine(t, awsc)
+
+	exec, err := state_machine.Execute(release)
+
+	assert.Error(t, err)
+	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
+	assert.Regexp(t, "older", exec.LastOutputJSON)
+	assertNoRootLockNoReleseLock(t, awsc, release)
+
+	assert.Equal(t, []string{
+		"Validate",
+		"FailureClean",
+	}, exec.Path())
+}
+
+func Test_DeployHandler_Execution_Errors_CreatedAt_Past(t *testing.T) {
+	release := MockRelease()
+	release.CreatedAt = to.Timep(time.Now().Add(-300 * time.Hour))
 
 	awsc := MockAwsClients(release)
 

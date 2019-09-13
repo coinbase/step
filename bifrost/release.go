@@ -34,6 +34,7 @@ type Release struct {
 	Bucket      *string `json:"bucket,omitempty"` // Bucket with Additional Data in it
 
 	CreatedAt *time.Time `json:"created_at,omitempty"`
+	StartedAt *time.Time `json:"started_at,omitempty"`
 
 	Timeout *int `json:"timeout,omitempty"` // How long should we try and deploy in seconds
 
@@ -95,9 +96,13 @@ func (r *Release) Validate(s3c aws.S3API, cRelease interface{}) error {
 		return fmt.Errorf("CreatedAt must be defined")
 	}
 
-	// Created at date must be after 5 mins ago, and before 10 days from now
-	// This allows roll backs but protects against replays after a while
-	if !is.WithinTimeFrame(r.CreatedAt, 300*time.Minute, 10*24*time.Hour) {
+	if r.StartedAt == nil {
+		return fmt.Errorf("StartedAt must be defined")
+	}
+
+	// Created at date must be after 10 days ago, and before 2 mins from now (wiggle room)
+	// This allows roll backs but protects against redeploying something very old
+	if !is.WithinTimeFrame(r.CreatedAt, 10*24*time.Hour, 2*time.Minute) {
 		return fmt.Errorf("Created at older than 10 days (or in the future)")
 	}
 
@@ -128,11 +133,23 @@ func (r *Release) validateReleaseSHA(s3c aws.S3API, cRelease interface{}) error 
 // Defaults
 ///////
 
+// This is called initially to wipe values that are controlled by this release
+func (r *Release) WipeControlledValues() {
+	r.UUID = nil
+	r.StartedAt = nil
+	r.Success = nil
+}
+
 // SetDefaults is passed the region and account where the lambda is executed
 // AND the default-bucket-prefix to calculate the default bucket name
 func (r *Release) SetDefaults(region *string, account *string, bucket_prefix string) {
 	if is.EmptyStr(r.UUID) {
 		r.UUID = to.TimeUUID("release-")
+	}
+
+	if r.StartedAt == nil {
+		now := time.Now()
+		r.StartedAt = &now
 	}
 
 	if is.EmptyStr(r.AwsRegion) {
@@ -202,7 +219,11 @@ func (r *Release) ErrorPrefix() string {
 func (r *Release) TimedOut() error {
 	now := time.Now()
 
-	timeout := r.CreatedAt.Add(time.Second * time.Duration(*r.Timeout))
+	if r.StartedAt == nil {
+		r.StartedAt = &now
+	}
+
+	timeout := r.StartedAt.Add(time.Second * time.Duration(*r.Timeout))
 	if now.After(timeout) {
 		return fmt.Errorf("Timeout: Halting Release")
 	}

@@ -17,10 +17,10 @@ func Test_IsHalt_ReleaseTimeout(t *testing.T) {
 	assert.Error(t, r.IsHalt(awsc.S3))
 
 	// 10 second halt
-	r.CreatedAt = to.Timep(time.Now().Add(-1 * (9 * time.Second)))
+	r.StartedAt = to.Timep(time.Now().Add(-1 * (9 * time.Second)))
 	r.Timeout = to.Intp(10)
 	assert.NoError(t, r.IsHalt(awsc.S3))
-	r.CreatedAt = to.Timep(time.Now().Add(-1 * (11 * time.Second)))
+	r.StartedAt = to.Timep(time.Now().Add(-1 * (11 * time.Second)))
 	assert.Error(t, r.IsHalt(awsc.S3))
 }
 

@@ -45,8 +45,7 @@ func ValidateHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
 		// Override any attributes set by the client
 		release.ReleaseSHA256 = to.SHA256Struct(release)
-		release.UUID = nil // Will be set later
-		release.Success = to.Boolp(false)
+		release.WipeControlledValues()
 
 		region, account := to.AwsRegionAccountFromContext(ctx)
 		release.SetDefaults(region, account, "coinbase-step-deployer-")

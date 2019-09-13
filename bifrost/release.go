@@ -34,8 +34,12 @@ type Release struct {
 	Bucket      *string `json:"bucket,omitempty"` // Bucket with Additional Data in it
 
 	CreatedAt *time.Time `json:"created_at,omitempty"`
+	StartedAt *time.Time `json:"started_at,omitempty"`
 
 	Timeout *int `json:"timeout,omitempty"` // How long should we try and deploy in seconds
+
+	// Additional Metadata attached but should not be functional
+	Metadata map[string]string `json:"metadata,omitempty"`
 
 	Error   *ReleaseError `json:"error,omitempty"`
 	Success *bool         `json:"success,omitempty"`
@@ -92,9 +96,14 @@ func (r *Release) Validate(s3c aws.S3API, cRelease interface{}) error {
 		return fmt.Errorf("CreatedAt must be defined")
 	}
 
-	// Created at date must be after 5 mins ago, and before 2 mins from now (wiggle room)
-	if !is.WithinTimeFrame(r.CreatedAt, 300*time.Second, 120*time.Second) {
-		return fmt.Errorf("Created at older than 5 mins (or in the future)")
+	if r.StartedAt == nil {
+		return fmt.Errorf("StartedAt must be defined")
+	}
+
+	// Created at date must be after 10 days ago, and before 2 mins from now (wiggle room)
+	// This allows roll backs but protects against redeploying something very old
+	if !is.WithinTimeFrame(r.CreatedAt, 10*24*time.Hour, 2*time.Minute) {
+		return fmt.Errorf("Created at older than 10 days (or in the future)")
 	}
 
 	if err := r.validateReleaseSHA(s3c, cRelease); err != nil {
@@ -124,11 +133,23 @@ func (r *Release) validateReleaseSHA(s3c aws.S3API, cRelease interface{}) error 
 // Defaults
 ///////
 
+// This is called initially to wipe values that are controlled by this release
+func (r *Release) WipeControlledValues() {
+	r.UUID = nil
+	r.StartedAt = nil
+	r.Success = nil
+}
+
 // SetDefaults is passed the region and account where the lambda is executed
 // AND the default-bucket-prefix to calculate the default bucket name
 func (r *Release) SetDefaults(region *string, account *string, bucket_prefix string) {
 	if is.EmptyStr(r.UUID) {
 		r.UUID = to.TimeUUID("release-")
+	}
+
+	if r.StartedAt == nil {
+		now := time.Now()
+		r.StartedAt = &now
 	}
 
 	if is.EmptyStr(r.AwsRegion) {
@@ -198,7 +219,11 @@ func (r *Release) ErrorPrefix() string {
 func (r *Release) TimedOut() error {
 	now := time.Now()
 
-	timeout := r.CreatedAt.Add(time.Second * time.Duration(*r.Timeout))
+	if r.StartedAt == nil {
+		r.StartedAt = &now
+	}
+
+	timeout := r.StartedAt.Add(time.Second * time.Duration(*r.Timeout))
 	if now.After(timeout) {
 		return fmt.Errorf("Timeout: Halting Release")
 	}
@@ -210,14 +235,34 @@ func (r *Release) TimedOut() error {
 // Lock
 ///////
 
-// ReleaseLock deletes the Lock File for the release
-func (r *Release) ReleaseLock(s3c aws.S3API) error {
-	return s3.ReleaseLock(s3c, r.Bucket, r.LockPath(), *r.UUID)
+// UnlockRootLock deletes the Lock File for the release
+func (r *Release) UnlockRoot(s3c aws.S3API) error {
+	return s3.ReleaseLock(s3c, r.Bucket, r.RootLockPath(), *r.UUID)
 }
 
-// GrabLock retrieves the Lock returns LockExistsError, or LockExistsError
-func (r *Release) GrabLock(s3c aws.S3API) error {
-	grabbed, err := s3.GrabLock(s3c, r.Bucket, r.LockPath(), *r.UUID)
+// GrabLock retrieves the Lock returns LockExistsError, or LockError
+func (r *Release) GrabLocks(s3c aws.S3API) error {
+	if err := r.GrabReleaseLock(s3c); err != nil {
+		return err
+	}
+
+	if err := r.GrabRootLock(s3c); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (r *Release) GrabRootLock(s3c aws.S3API) error {
+	return r.grabLock(s3c, *r.RootLockPath())
+}
+
+func (r *Release) GrabReleaseLock(s3c aws.S3API) error {
+	return r.grabLock(s3c, *r.ReleaseLockPath())
+}
+
+func (r *Release) grabLock(s3c aws.S3API, lockPath string) error {
+	grabbed, err := s3.GrabLock(s3c, r.Bucket, &lockPath, *r.UUID)
 
 	// Check grabbed first because there are errors that can be thrown before anything is created
 	if !grabbed {
@@ -225,7 +270,7 @@ func (r *Release) GrabLock(s3c aws.S3API) error {
 			return &errors.LockExistsError{err.Error()}
 		}
 
-		return &errors.LockExistsError{fmt.Sprintf("Lock Already Exists at %v:%v", *r.Bucket, *r.LockPath())}
+		return &errors.LockExistsError{fmt.Sprintf("Lock Already Exists at %v:%v", *r.Bucket, lockPath)}
 	}
 
 	// Error if MAYBE grabbed the lock and we should try to unlock
@@ -236,7 +281,12 @@ func (r *Release) GrabLock(s3c aws.S3API) error {
 	return nil
 }
 
-func (r *Release) LockPath() *string {
+func (r *Release) ReleaseLockPath() *string {
+	s := fmt.Sprintf("%v/lock", *r.ReleaseDir())
+	return &s
+}
+
+func (r *Release) RootLockPath() *string {
 	s := fmt.Sprintf("%v/lock", *r.RootDir())
 	return &s
 }
@@ -336,6 +386,7 @@ func (release *Release) AppendLog(s3c aws.S3API, log string) error {
 			return err // All other errors return
 		}
 	}
+
 	// doubly sure
 	if logFile == nil {
 		logFile = to.Strp("")

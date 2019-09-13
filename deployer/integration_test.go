@@ -27,7 +27,7 @@ func Test_DeployHandler_Execution_Works(t *testing.T) {
 	assert.Equal(t, output["success"], true)
 	assert.NotRegexp(t, "error", exec.LastOutputJSON)
 
-	assertNoLock(t, awsc, release)
+	assertNoRootLockWithReleseLock(t, awsc, release)
 	assert.Equal(t, []string{
 		"Validate",
 		"Lock",
@@ -67,7 +67,7 @@ func Test_DeployHandler_Execution_Errors_BadInput(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
-	assertNoLock(t, awsc, release)
+	assertNoRootLockNoReleseLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -85,7 +85,7 @@ func Test_DeployHandler_Execution_UnmarhsallError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "UnmarshalError", exec.LastOutputJSON)
 	assert.Regexp(t, "asd", exec.LastOutputJSON)
-	assertNoLock(t, awsc, release)
+	assertNoRootLockNoReleseLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -106,7 +106,7 @@ func Test_DeployHandler_Execution_Errors_Release(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "ReleaseID must", exec.LastOutputJSON)
-	assertNoLock(t, awsc, release)
+	assertNoRootLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -114,9 +114,9 @@ func Test_DeployHandler_Execution_Errors_Release(t *testing.T) {
 	}, exec.Path())
 }
 
-func Test_DeployHandler_Execution_Errors_CreatedAt(t *testing.T) {
+func Test_DeployHandler_Execution_Errors_CreatedAt_Future(t *testing.T) {
 	release := MockRelease()
-	release.CreatedAt = to.Timep(time.Now().Add(10 * time.Minute))
+	release.CreatedAt = to.Timep(time.Now().Add(1 * time.Hour))
 
 	awsc := MockAwsClients(release)
 
@@ -127,7 +127,7 @@ func Test_DeployHandler_Execution_Errors_CreatedAt(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "older", exec.LastOutputJSON)
-	assertNoLock(t, awsc, release)
+	assertNoRootLockNoReleseLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -135,13 +135,34 @@ func Test_DeployHandler_Execution_Errors_CreatedAt(t *testing.T) {
 	}, exec.Path())
 }
 
-func Test_DeployHandler_Execution_Errors_LockError(t *testing.T) {
+func Test_DeployHandler_Execution_Errors_CreatedAt_Past(t *testing.T) {
+	release := MockRelease()
+	release.CreatedAt = to.Timep(time.Now().Add(-300 * time.Hour))
+
+	awsc := MockAwsClients(release)
+
+	state_machine := createTestStateMachine(t, awsc)
+
+	exec, err := state_machine.Execute(release)
+
+	assert.Error(t, err)
+	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
+	assert.Regexp(t, "older", exec.LastOutputJSON)
+	assertNoRootLockNoReleseLock(t, awsc, release)
+
+	assert.Equal(t, []string{
+		"Validate",
+		"FailureClean",
+	}, exec.Path())
+}
+
+func Test_DeployHandler_Execution_Errors_Root_LockError(t *testing.T) {
 	release := MockRelease()
 	awsc := MockAwsClients(release)
 
 	state_machine := createTestStateMachine(t, awsc)
 
-	awsc.S3.AddPutObject(*release.LockPath(), fmt.Errorf("PuttyError"))
+	awsc.S3.AddPutObject(*release.RootLockPath(), fmt.Errorf("PuttyError"))
 
 	exec, err := state_machine.Execute(release)
 
@@ -149,7 +170,7 @@ func Test_DeployHandler_Execution_Errors_LockError(t *testing.T) {
 	assert.Regexp(t, "LockError", exec.LastOutputJSON)
 	assert.Regexp(t, "PuttyError", exec.LastOutputJSON)
 
-	assertNoLock(t, awsc, release)
+	assertNoRootLockWithReleseLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -165,7 +186,31 @@ func Test_DeployHandler_Execution_Errors_LockExistsError(t *testing.T) {
 
 	state_machine := createTestStateMachine(t, awsc)
 
-	awsc.S3.AddGetObject(*release.LockPath(), `{"uuid":"notuuid"}`, nil)
+	awsc.S3.AddGetObject(*release.RootLockPath(), `{"uuid":"notuuid"}`, nil)
+
+	exec, err := state_machine.Execute(release)
+
+	assert.Error(t, err)
+	assert.Regexp(t, "LockExistsError", exec.LastOutputJSON)
+	assert.Regexp(t, "Lock Already Exists", exec.LastOutputJSON)
+
+	assert.Equal(t, []string{
+		"Validate",
+		"Lock",
+		"FailureClean",
+	}, exec.Path())
+}
+
+func Test_DeployHandler_Execution_Errors_Release_LockError(t *testing.T) {
+	release := MockRelease()
+	awsc := MockAwsClients(release)
+
+	state_machine := createTestStateMachine(t, awsc)
+
+	uidStr := fmt.Sprintf("{\"uuid\":\"%v\"}", *release.ReleaseID)
+	fmt.Println(uidStr)
+
+	awsc.S3.AddGetObject(*release.ReleaseLockPath(), uidStr, nil)
 
 	exec, err := state_machine.Execute(release)
 
@@ -194,7 +239,7 @@ func Test_DeployHandler_Execution_Errors_WrongLambdaTags(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "DeployWith", exec.LastOutputJSON)
-	assertNoLock(t, awsc, release)
+	assertNoRootLockWithReleseLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -218,7 +263,7 @@ func Test_DeployHandler_Execution_Errors_WrongSFNPath(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "Role Path", exec.LastOutputJSON)
-	assertNoLock(t, awsc, release)
+	assertNoRootLockWithReleseLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -241,7 +286,7 @@ func Test_DeployHandler_Execution_Errors_BadLambdaSHA(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "Lambda SHA", exec.LastOutputJSON)
-	assertNoLock(t, awsc, release)
+	assertNoRootLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -261,7 +306,7 @@ func Test_DeployHandler_Execution_Errors_BadReleasePath(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "uploaded Release struct", exec.LastOutputJSON)
-	assertNoLock(t, awsc, release)
+	assertNoRootLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -281,7 +326,7 @@ func Test_DeployHandler_Execution_Errors_WrongReleasePath(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "Release SHA", exec.LastOutputJSON)
-	assertNoLock(t, awsc, release)
+	assertNoRootLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -301,7 +346,7 @@ func Test_DeployHandler_Execution_Errors_DifferentReleaseSHA(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "Release SHA", exec.LastOutputJSON)
-	assertNoLock(t, awsc, release)
+	assertNoRootLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",

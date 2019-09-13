@@ -29,6 +29,7 @@ func MockRelease() *Release {
 			ProjectName:  to.Strp("project"),
 			ConfigName:   to.Strp("development"),
 			CreatedAt:    to.Timep(time.Now()),
+			Metadata:     map[string]string{"User": "User@user.com"},
 		},
 		LambdaName:       to.Strp("lambdaname"),
 		StepFnName:       to.Strp("stepfnname"),
@@ -82,8 +83,23 @@ func createTestStateMachine(t *testing.T, awsc *mocks.MockClients) *machine.Stat
 	return stateMachine
 }
 
-func assertNoLock(t *testing.T, awsc aws.AwsClients, release *Release) {
-	_, err := s3.Get(awsc.S3Client(nil, nil, nil), release.Bucket, release.LockPath())
+func assertNoRootLock(t *testing.T, awsc aws.AwsClients, release *Release) {
+	_, err := s3.Get(awsc.S3Client(nil, nil, nil), release.Bucket, release.RootLockPath())
+	assert.Error(t, err) // Not found error
+	assert.IsType(t, &s3.NotFoundError{}, err)
+}
+
+func assertNoRootLockWithReleseLock(t *testing.T, awsc aws.AwsClients, release *Release) {
+	assertNoRootLock(t, awsc, release)
+
+	_, err := s3.Get(awsc.S3Client(nil, nil, nil), release.Bucket, release.ReleaseLockPath())
+	assert.NoError(t, err) // Not error
+}
+
+func assertNoRootLockNoReleseLock(t *testing.T, awsc aws.AwsClients, release *Release) {
+	assertNoRootLock(t, awsc, release)
+
+	_, err := s3.Get(awsc.S3Client(nil, nil, nil), release.Bucket, release.ReleaseLockPath())
 	assert.Error(t, err) // Not found error
 	assert.IsType(t, &s3.NotFoundError{}, err)
 }

@@ -3,6 +3,7 @@ package state
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/coinbase/step/jsonpath"
@@ -55,6 +56,66 @@ type ChoiceRule struct {
 	And []*ChoiceRule `json:",omitempty"`
 	Or  []*ChoiceRule `json:",omitempty"`
 	Not *ChoiceRule   `json:",omitempty"`
+}
+
+func (cr *ChoiceRule) String() string {
+	if cr.And != nil {
+		var strs []string
+		for _, and := range cr.And {
+			strs = append(strs, and.String())
+		}
+		return strings.Join(strs, " && ")
+	}
+
+	if cr.Or != nil {
+		var strs []string
+		for _, or := range cr.Or {
+			strs = append(strs, or.String())
+		}
+		return strings.Join(strs, " || ")
+	}
+
+	if cr.Not != nil {
+		return fmt.Sprintf("!%v", *cr.Variable)
+	}
+
+	op := ""
+
+	if cr.StringEquals != nil {
+		op = fmt.Sprintf("=%v", *cr.StringEquals)
+	} else if cr.StringLessThan != nil {
+		op = fmt.Sprintf("<%v", *cr.StringLessThan)
+	} else if cr.StringGreaterThan != nil {
+		op = fmt.Sprintf(">%v", *cr.StringGreaterThan)
+	} else if cr.StringLessThanEquals != nil {
+		op = fmt.Sprintf("<=%v", *cr.StringLessThanEquals)
+	} else if cr.StringGreaterThanEquals != nil {
+		op = fmt.Sprintf(">=%v", *cr.StringGreaterThanEquals)
+	} else if cr.NumericEquals != nil {
+		op = fmt.Sprintf("=%v", *cr.NumericEquals)
+	} else if cr.NumericLessThan != nil {
+		op = fmt.Sprintf("<%v", *cr.NumericLessThan)
+	} else if cr.NumericGreaterThan != nil {
+		op = fmt.Sprintf(">%v", *cr.NumericGreaterThan)
+	} else if cr.NumericLessThanEquals != nil {
+		op = fmt.Sprintf("<=%v", *cr.NumericLessThanEquals)
+	} else if cr.NumericGreaterThanEquals != nil {
+		op = fmt.Sprintf(">=%v", *cr.NumericGreaterThanEquals)
+	} else if cr.BooleanEquals != nil {
+		op = fmt.Sprintf("=%v", *cr.BooleanEquals)
+	} else if cr.TimestampEquals != nil {
+		op = fmt.Sprintf("=%v", *cr.TimestampEquals)
+	} else if cr.TimestampLessThan != nil {
+		op = fmt.Sprintf("<%v", *cr.TimestampLessThan)
+	} else if cr.TimestampGreaterThan != nil {
+		op = fmt.Sprintf(">%v", *cr.TimestampGreaterThan)
+	} else if cr.TimestampLessThanEquals != nil {
+		op = fmt.Sprintf("<=%v", *cr.TimestampLessThanEquals)
+	} else if cr.TimestampGreaterThanEquals != nil {
+		op = fmt.Sprintf(">=%v", *cr.TimestampGreaterThanEquals)
+	}
+
+	return fmt.Sprintf("%v%v", cr.Variable.String(), op)
 }
 
 func (s *ChoiceState) process(ctx context.Context, input interface{}) (interface{}, *string, error) {

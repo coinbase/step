@@ -5,11 +5,9 @@ import (
 	"os"
 	"strings"
 
-	"github.com/coinbase/step/utils/to"
-
-	"github.com/coinbase/step/machine/state"
-
 	"github.com/coinbase/step/machine"
+	"github.com/coinbase/step/machine/state"
+	"github.com/coinbase/step/utils/to"
 )
 
 // Output Dot Format For State Machine
@@ -22,205 +20,150 @@ func Dot(stateMachine *machine.StateMachine, err error) {
 	}
 
 	dotStr := toDot(stateMachine)
-	fmt.Println(string(dotStr))
+	fmt.Println(dotStr)
 	os.Exit(0)
 }
 
 func toDot(stateMachine *machine.StateMachine) string {
 	return fmt.Sprintf(`digraph StateMachine {
-	node      [ style="rounded,filled,bold", shape=box, fixedsize=true, width=2, fontname="Arial" fontcolor="#183153", color="#183153"];
-	edge      [ style=bold, fontname="Arial", fontcolor="#183153", color="#183153" ]
-  _Start    [ fillcolor="#183153", shape=circle, label="", width=0.25 ];
-  _End      [ fillcolor="#183153", shape=doublecircle, label="", width=0.3 ];
+    node      [style="rounded,filled,bold", shape=box, width=2, fontname="Arial" fontcolor="#183153", color="#183153"];
+    edge      [style=bold, fontname="Arial", fontcolor="#183153", color="#183153"];
+    _Start    [fillcolor="#183153", shape=circle, label="", width=0.25];
+    _End      [fillcolor="#183153", shape=doublecircle, label="", width=0.3];
 
-  _Start -> %v [weight=1000]
-
-  # States
-  %v
-}`, *stateMachine.StartAt, processStates(stateMachine.States))
+    _Start -> "%v" [weight=1000];
+    %v
+}`, *stateMachine.StartAt, processStates(*stateMachine.StartAt, stateMachine.States))
 }
 
-func processStates(states map[string]state.State) string {
-	str := ""
-	for _, s := range states {
-		str += processState(s)
+func processStates(start string, states map[string]state.State) string {
+	orderedStates := orderStates(start, states)
+
+	var stateStrings []string
+	for _, stateNode := range orderedStates {
+		stateStrings = append(stateStrings, processState(stateNode))
 	}
-	return str
+	return strings.Join(stateStrings, "\n\n    ")
 }
 
-func processState(s state.State) string {
-	strs := []string{}
-	name := *s.Name()
-	switch s.(type) {
-	case *state.PassState:
-		sstate := s.(*state.PassState)
-		strs = append(strs, fmt.Sprintf(`%q [fillcolor="#FBFBFB"]`, name))
-		if sstate.Next != nil {
-			strs = append(strs, fmt.Sprintf(`%q -> %q [weight=100]`, name, *sstate.Next))
-		}
-		if sstate.End != nil {
-			strs = append(strs, fmt.Sprintf(`%q -> _End`, name))
-		}
+// Order states from start to end consistently to generate deterministic graphs.
+func orderStates(start string, states map[string]state.State) []state.State {
+	var orderedStates []state.State
+	startState := states[start]
+	stateQueue := []state.State{startState}
+	seenStates := make(map[string]struct{})
 
-	case *state.TaskState:
-		sstate := s.(*state.TaskState)
-		strs = append(strs, fmt.Sprintf(`%q [fillcolor="#FBFBFB"]`, name))
+	for len(stateQueue) > 0 {
+		var stateNode state.State
+		stateNode, stateQueue = stateQueue[0], stateQueue[1:]
 
-		if sstate.Retry != nil {
-			strs = append(strs, fmt.Sprintf(`%q -> %q [color="#F9E4D1"]`, name, name))
-		}
+		orderedStates = append(orderedStates, stateNode)
 
-		if sstate.Catch != nil {
-			for _, c := range sstate.Catch {
-				cname := fmt.Sprintf("%q", strings.Join(to.StrSlice(c.ErrorEquals), ","))
-				if len(c.ErrorEquals) == 1 && *c.ErrorEquals[0] == "States.ALL" {
-					cname = ""
+		var connectedStates []state.State
+		switch stateNode.(type) {
+		case *state.PassState:
+			stateNode := stateNode.(*state.PassState)
+			if stateNode.Next != nil {
+				connectedStates = append(connectedStates, states[*stateNode.Next])
+			}
+		case *state.TaskState:
+			stateNode := stateNode.(*state.TaskState)
+
+			if stateNode.Catch != nil {
+				for _, catch := range stateNode.Catch {
+					connectedStates = append(connectedStates, states[*catch.Next])
 				}
-				strs = append(strs, fmt.Sprintf(`%q -> %q [color="#F9E4D1", label=%q]`, name, *c.Next, cname))
+			}
+
+			if stateNode.Next != nil {
+				connectedStates = append(connectedStates, states[*stateNode.Next])
+			}
+		case *state.ChoiceState:
+			stateNode := stateNode.(*state.ChoiceState)
+
+			if stateNode.Choices != nil {
+				for _, choice := range stateNode.Choices {
+					connectedStates = append(connectedStates, states[*choice.Next])
+				}
+			}
+		case *state.WaitState:
+			stateNode := stateNode.(*state.WaitState)
+
+			if stateNode.Next != nil {
+				connectedStates = append(connectedStates, states[*stateNode.Next])
 			}
 		}
 
-		if sstate.Next != nil {
-			strs = append(strs, fmt.Sprintf(`%q -> %q [weight=100]`, name, *sstate.Next))
-		}
-
-		if sstate.End != nil {
-			strs = append(strs, fmt.Sprintf(`%q -> _End`, name))
-		}
-
-	case *state.ChoiceState:
-		sstate := s.(*state.ChoiceState)
-		strs = append(strs, fmt.Sprintf(`%q [shape=diamond, fillcolor="#FBFBFB"]`, name))
-
-		if sstate.Default != nil {
-			strs = append(strs, fmt.Sprintf(`%q -> %q [label="default", weight=10]`, name, *sstate.Default))
-		}
-
-		if sstate.Choices != nil {
-			for _, c := range sstate.Choices {
-				strs = append(strs, fmt.Sprintf(`%q -> %q [label=%q, weight=100]`, name, *c.Next, choiceStr(c.ChoiceRule)))
+		for _, connectedState := range connectedStates {
+			stateName := *connectedState.Name()
+			if _, seen := seenStates[stateName]; !seen {
+				stateQueue = append(stateQueue, connectedState)
+				seenStates[stateName] = struct{}{}
 			}
 		}
-
-	case *state.WaitState:
-		sstate := s.(*state.WaitState)
-
-		wait_til := ""
-		if sstate.Seconds != nil {
-			wait_til = fmt.Sprintf("%vs", *sstate.Seconds)
-		}
-		if sstate.Timestamp != nil {
-			wait_til = fmt.Sprintf("%v", *sstate.Timestamp)
-		}
-		if sstate.TimestampPath != nil {
-			wait_til = fmt.Sprintf("%v", *sstate.TimestampPath)
-		}
-
-		strs = append(strs, fmt.Sprintf(`%q [width=0.5, shape=doublecircle, fillcolor="#FBFBFB", label="Wait"]`, name))
-
-		if sstate.Next != nil {
-			strs = append(strs, fmt.Sprintf(`%q -> %q [weight=100, label=%q]`, name, *sstate.Next, wait_til))
-		}
-
-	case *state.FailState:
-		strs = append(strs, fmt.Sprintf(`%q [fillcolor="#F9E4D1"]`, name))
-		strs = append(strs, fmt.Sprintf(`%q -> _End [weight=1000]`, name))
-	case *state.SucceedState:
-		strs = append(strs, fmt.Sprintf(`%q [fillcolor="#e5eddb"]`, name))
-		strs = append(strs, fmt.Sprintf(`%q -> _End [weight=1000]`, name))
-
 	}
-	strs = append(strs, "\n  ")
-	return strings.Join(strs, "\n  ")
+
+	return orderedStates
 }
 
-func choiceStr(cr state.ChoiceRule) string {
-	if cr.And != nil {
-		strs := []string{}
-		for _, a := range cr.And {
-			strs = append(strs, choiceStr(*a))
+func processState(stateNode state.State) string {
+	var lines []string
+	name := *stateNode.Name()
+	switch stateNode.(type) {
+	case *state.PassState:
+		stateNode := stateNode.(*state.PassState)
+		lines = append(lines, fmt.Sprintf(`%q [fillcolor="#FBFBFB"];`, name))
+		if stateNode.Next != nil {
+			lines = append(lines, fmt.Sprintf(`%q -> %q [weight=100];`, name, *stateNode.Next))
 		}
-		return strings.Join(strs, " && ")
-	}
-
-	if cr.Or != nil {
-		strs := []string{}
-		for _, a := range cr.And {
-			strs = append(strs, choiceStr(*a))
+		if stateNode.End != nil {
+			lines = append(lines, fmt.Sprintf(`%q -> _End;`, name))
 		}
-		return strings.Join(strs, " || ")
+	case *state.TaskState:
+		stateNode := stateNode.(*state.TaskState)
+		lines = append(lines, fmt.Sprintf(`%q [fillcolor="#FBFBFB"];`, name))
+
+		if stateNode.Catch != nil {
+			for _, catch := range stateNode.Catch {
+				catchName := fmt.Sprintf("%q", strings.Join(to.StrSlice(catch.ErrorEquals), ","))
+				if len(catch.ErrorEquals) == 1 && *catch.ErrorEquals[0] == "States.ALL" {
+					catchName = ""
+				}
+				lines = append(lines, fmt.Sprintf(`%q -> %q [color="#949494", label=%q, style=solid];`, name, *catch.Next, catchName))
+			}
+		}
+
+		if stateNode.Next != nil {
+			lines = append(lines, fmt.Sprintf(`%q -> %q [weight=100];`, name, *stateNode.Next))
+		}
+
+		if stateNode.End != nil {
+			lines = append(lines, fmt.Sprintf(`%q -> _End;`, name))
+		}
+	case *state.ChoiceState:
+		stateNode := stateNode.(*state.ChoiceState)
+		lines = append(lines, fmt.Sprintf(`%q [shape=egg, fillcolor="#FBFBFB"];`, name))
+
+		if stateNode.Choices != nil {
+			for _, choice := range stateNode.Choices {
+				lines = append(lines, fmt.Sprintf(`%q -> %q [weight=100];`, name, *choice.Next))
+			}
+		}
+	case *state.WaitState:
+		stateNode := stateNode.(*state.WaitState)
+
+		lines = append(lines, fmt.Sprintf(`%q [width=0.5, shape=doublecircle, fillcolor="#FBFBFB", label="Wait"];`, name))
+
+		if stateNode.Next != nil {
+			lines = append(lines, fmt.Sprintf(`%q -> %q [weight=100];`, name, *stateNode.Next))
+		}
+	case *state.FailState:
+		lines = append(lines, fmt.Sprintf(`%q [fillcolor="#F9E4D1"];`, name))
+		lines = append(lines, fmt.Sprintf(`%q -> _End [weight=1000];`, name))
+	case *state.SucceedState:
+		lines = append(lines, fmt.Sprintf(`%q [fillcolor="#e5eddb"];`, name))
+		lines = append(lines, fmt.Sprintf(`%q -> _End [weight=1000];`, name))
 	}
 
-	if cr.Not != nil {
-		return fmt.Sprintf("!%v", *cr.Variable)
-	}
-
-	op := ""
-
-	if cr.StringEquals != nil {
-		op = fmt.Sprintf("=%v", *cr.StringEquals)
-	}
-
-	if cr.StringLessThan != nil {
-		op = fmt.Sprintf("<%v", *cr.StringLessThan)
-	}
-
-	if cr.StringGreaterThan != nil {
-		op = fmt.Sprintf(">%v", *cr.StringGreaterThan)
-	}
-
-	if cr.StringLessThanEquals != nil {
-		op = fmt.Sprintf("<=%v", *cr.StringLessThanEquals)
-	}
-
-	if cr.StringGreaterThanEquals != nil {
-		op = fmt.Sprintf(">=%v", *cr.StringGreaterThanEquals)
-	}
-
-	// NUMBERs
-	if cr.NumericEquals != nil {
-		op = fmt.Sprintf("=%v", *cr.NumericEquals)
-	}
-
-	if cr.NumericLessThan != nil {
-		op = fmt.Sprintf("<%v", *cr.NumericLessThan)
-	}
-
-	if cr.NumericGreaterThan != nil {
-		op = fmt.Sprintf(">%v", *cr.NumericGreaterThan)
-	}
-
-	if cr.NumericLessThanEquals != nil {
-		op = fmt.Sprintf("<=%v", *cr.NumericLessThanEquals)
-	}
-
-	if cr.NumericGreaterThanEquals != nil {
-		op = fmt.Sprintf(">=%v", *cr.NumericGreaterThanEquals)
-	}
-
-	if cr.BooleanEquals != nil {
-		op = fmt.Sprintf("=%v", *cr.BooleanEquals)
-	}
-
-	if cr.TimestampEquals != nil {
-		op = fmt.Sprintf("=%v", *cr.TimestampEquals)
-	}
-
-	if cr.TimestampLessThan != nil {
-		op = fmt.Sprintf("<%v", *cr.TimestampLessThan)
-	}
-
-	if cr.TimestampGreaterThan != nil {
-		op = fmt.Sprintf(">%v", *cr.TimestampGreaterThan)
-	}
-
-	if cr.TimestampLessThanEquals != nil {
-		op = fmt.Sprintf("<=%v", *cr.TimestampLessThanEquals)
-	}
-
-	if cr.TimestampGreaterThanEquals != nil {
-		op = fmt.Sprintf(">=%v", *cr.TimestampGreaterThanEquals)
-	}
-
-	return fmt.Sprintf("%v%v", cr.Variable.String(), op)
+	return strings.Join(lines, "\n    ")
 }

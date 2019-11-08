@@ -47,6 +47,38 @@ func Test_Put_With_Type_Success(t *testing.T) {
 	assert.Equal(t, "text/html", string(*object.ContentType))
 }
 
+func Test_Put_With_Cache_Control_Success(t *testing.T) {
+	s3c := &mocks.MockS3Client{}
+	bucket := to.Strp("bucket")
+	key := to.Strp("/path")
+	content := []byte("asdji")
+	cacheControl := to.Strp("public, max-age=31556926")
+	err := PutWithCacheControl(s3c, bucket, key, &content, cacheControl)
+	assert.NoError(t, err)
+
+	object, out, err := GetObject(s3c, bucket, key)
+	assert.NoError(t, err)
+	assert.Equal(t, "asdji", string(*out))
+	assert.Equal(t, "public, max-age=31556926", string(*object.CacheControl))
+}
+
+func Test_Put_With_Type_And_Cache_Control_Success(t *testing.T) {
+	s3c := &mocks.MockS3Client{}
+	bucket := to.Strp("bucket")
+	key := to.Strp("/path")
+	content := []byte("<html></html>")
+	contentType := to.Strp("text/html")
+	cacheControl := to.Strp("public, max-age=31556926")
+	err := PutWithTypeAndCacheControl(s3c, bucket, key, &content, contentType, cacheControl)
+	assert.NoError(t, err)
+
+	object, out, err := GetObject(s3c, bucket, key)
+	assert.NoError(t, err)
+	assert.Equal(t, "<html></html>", string(*out))
+	assert.Equal(t, "text/html", string(*object.ContentType))
+	assert.Equal(t, "public, max-age=31556926", string(*object.CacheControl))
+}
+
 func Test_Delete_Success(t *testing.T) {
 	s3c := &mocks.MockS3Client{}
 	bucket := to.Strp("bucket")

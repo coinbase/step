@@ -70,10 +70,11 @@ func MakeS3Body(ret string) io.ReadCloser {
 	return ioutil.NopCloser(strings.NewReader(ret))
 }
 
-func makeS3Resp(ret string, contentType *string) *s3.GetObjectOutput {
+func makeS3Resp(ret string, contentType *string, cacheControl *string) *s3.GetObjectOutput {
 	return &s3.GetObjectOutput{
 		Body:         MakeS3Body(ret),
 		ContentType:  contentType,
+		CacheControl: cacheControl,
 		LastModified: to.Timep(time.Now()),
 	}
 }
@@ -82,17 +83,17 @@ func AWSS3NotFoundError() error {
 	return awserr.New(s3.ErrCodeNoSuchKey, "not found", nil)
 }
 
-func (m *MockS3Client) addGetObjectWithContentType(key string, body string, contentType *string, err error) {
+func (m *MockS3Client) addGetObjectWithContentTypeAndCacheControl(key string, body string, contentType *string, cacheControl *string, err error) {
 	m.init()
 	m.GetObjectResp[key] = &GetObjectResponse{
-		Resp:  makeS3Resp(body, contentType),
+		Resp:  makeS3Resp(body, contentType, cacheControl),
 		Body:  body,
 		Error: err,
 	}
 }
 
 func (m *MockS3Client) AddGetObject(key string, body string, err error) {
-	m.addGetObjectWithContentType(key, body, nil, err)
+	m.addGetObjectWithContentTypeAndCacheControl(key, body, nil, nil, err)
 }
 
 func (m *MockS3Client) AddPutObject(key string, err error) {
@@ -142,7 +143,7 @@ func (m *MockS3Client) PutObject(in *s3.PutObjectInput) (*s3.PutObjectOutput, er
 	// Simulates adding the object
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(in.Body)
-	m.addGetObjectWithContentType(*in.Key, buf.String(), in.ContentType, nil)
+	m.addGetObjectWithContentTypeAndCacheControl(*in.Key, buf.String(), in.ContentType, in.CacheControl, nil)
 
 	if resp == nil {
 		return &s3.PutObjectOutput{}, nil

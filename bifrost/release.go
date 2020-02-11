@@ -314,7 +314,7 @@ func (r *Release) RootLockPath() *string {
 }
 
 func (r *Release) UserLockPath() *string {
-	s := fmt.Sprintf("%v/user-lock", *r.ReleaseDir())
+	s := fmt.Sprintf("%v/user-lock", *r.RootDir())
 	return &s
 }
 

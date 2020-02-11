@@ -250,6 +250,10 @@ func (r *Release) GrabLocks(s3c aws.S3API) error {
 		return err
 	}
 
+	if err := r.GrabUserLock(s3c); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -259,6 +263,24 @@ func (r *Release) GrabRootLock(s3c aws.S3API) error {
 
 func (r *Release) GrabReleaseLock(s3c aws.S3API) error {
 	return r.grabLock(s3c, *r.ReleaseLockPath())
+}
+
+func (r *Release) GrabUserLock(s3c aws.S3API) error {
+	return r.grabUserLock(s3c, *r.UserLockPath())
+}
+
+func (r *Release) grabUserLock(s3c aws.S3API, lockPath string) error {
+	grabbed, err := s3.GrabUserLock(s3c, r.Bucket, &lockPath)
+	if !grabbed {
+		if err != nil {
+			return &errors.LockExistsError{err.Error()}
+		}
+		return &errors.LockExistsError{fmt.Sprintf("Lock Already Exists at %v:%v", *r.Bucket, lockPath)}
+	}
+	if err != nil {
+		return &errors.LockError{err.Error()}
+	}
+	return nil
 }
 
 func (r *Release) grabLock(s3c aws.S3API, lockPath string) error {
@@ -288,6 +310,11 @@ func (r *Release) ReleaseLockPath() *string {
 
 func (r *Release) RootLockPath() *string {
 	s := fmt.Sprintf("%v/lock", *r.RootDir())
+	return &s
+}
+
+func (r *Release) UserLockPath() *string {
+	s := fmt.Sprintf("%v/user-lock", *r.ReleaseDir())
 	return &s
 }
 

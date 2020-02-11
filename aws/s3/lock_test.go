@@ -25,10 +25,9 @@ func Test_CheckUserLock_Success(t *testing.T) {
 	bucket := to.Strp("bucket")
 	path := to.Strp("path")
 
-	grabbed, _, err := CheckUserLock(s3c, bucket, path)
+	err := CheckUserLock(s3c, bucket, path)
 
 	assert.NoError(t, err)
-	assert.True(t, grabbed)
 }
 
 func Test_GrabLock_Success_Already_Has_Lock(t *testing.T) {
@@ -60,10 +59,8 @@ func Test_CheckUserLock_Failure_Already_Locked(t *testing.T) {
 	path := to.Strp("path")
 
 	s3c.AddGetObject(*path, `{"user": "test", "lock_reason": "testing"}`, nil)
-	grabbed, _, err := CheckUserLock(s3c, bucket, path)
-
-	assert.NoError(t, err)
-	assert.False(t, grabbed)
+	err := CheckUserLock(s3c, bucket, path)
+	assert.Error(t, err)
 }
 
 func Test_GrabLock_Failure_S3_Get_Error(t *testing.T) {
@@ -84,10 +81,9 @@ func Test_CheckUserLock_Failure_S3_Get_Error(t *testing.T) {
 	path := to.Strp("path")
 
 	s3c.AddGetObject(*path, `{"user": "test", "lock_reason": "hello"}`, fmt.Errorf("ERRRR"))
-	grabbed, _, err := CheckUserLock(s3c, bucket, path)
+	err := CheckUserLock(s3c, bucket, path)
 
 	assert.Error(t, err)
-	assert.False(t, grabbed)
 }
 
 func Test_GrabLock_Failure_S3_Upload_Error(t *testing.T) {

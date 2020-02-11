@@ -270,15 +270,10 @@ func (r *Release) CheckUserLock(s3c aws.S3API) error {
 }
 
 func (r *Release) checkUserLock(s3c aws.S3API, lockPath string) error {
-	grabbed, lock, err := s3.CheckUserLock(s3c, r.Bucket, &lockPath)
-	if !grabbed {
-		if err != nil {
-			return &errors.LockExistsError{err.Error()}
-		}
-		return &errors.LockExistsError{fmt.Sprintf("Lock Already Exists at %v:%v. Deploys locked by %v for reason: %v", *r.Bucket, lockPath, lock.User, lock.LockReason)}
-	}
+	err := s3.CheckUserLock(s3c, r.Bucket, &lockPath)
+
 	if err != nil {
-		return &errors.LockError{err.Error()}
+		return err
 	}
 	return nil
 }

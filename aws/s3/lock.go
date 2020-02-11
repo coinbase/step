@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/coinbase/step/aws"
+	"github.com/coinbase/step/errors"
 )
 
 type Lock struct {
@@ -15,7 +16,7 @@ type UserLock struct {
 	LockReason string `json:"lock_reason", omitempty"`
 }
 
-func CheckUserLock(s3c aws.S3API, bucket *string, lock_path *string) (bool, *UserLock, error) {
+func CheckUserLock(s3c aws.S3API, bucket *string, lock_path *string) error {
 	var userLock UserLock
 	err := GetStruct(s3c, bucket, lock_path, &userLock)
 	if err != nil {
@@ -23,13 +24,14 @@ func CheckUserLock(s3c aws.S3API, bucket *string, lock_path *string) (bool, *Use
 		case *NotFoundError:
 			// good we want this
 		default:
-			return false, nil, err // All other errors return
+			return err // All other errors return
 		}
 	}
 	if userLock.User != "" {
-		return false, &userLock, nil
+		return &errors.LockExistsError{fmt.Sprintf("Deploys locked by %v for reason: %v", userLock.User, userLock.LockReason)}
 	}
-	return true, nil, nil
+
+	return nil
 }
 
 // GrabLock creates a lock file in S3 with a UUID

@@ -17,7 +17,7 @@ type UserLock struct {
 
 func GrabUserLock(s3c aws.S3API, bucket *string, lock_path *string) (bool, error) {
 	var userLock UserLock
-	err := GetStruct(s3c, bucket, lock_path, userLock)
+	err := GetStruct(s3c, bucket, lock_path, &userLock)
 	if err != nil {
 		switch err.(type) {
 		case *NotFoundError:
@@ -26,7 +26,9 @@ func GrabUserLock(s3c aws.S3API, bucket *string, lock_path *string) (bool, error
 			return false, err // All other errors return
 		}
 	}
-	return true, nil
+	if userLock.User != "" {
+		return false, nil
+	}
 
 	lock := &UserLock{User: "step", LockReason: "deploy is currently running"}
 	err = PutStruct(s3c, bucket, lock_path, lock)

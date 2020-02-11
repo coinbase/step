@@ -15,7 +15,7 @@ type UserLock struct {
 	LockReason string `json:"lock_reason", omitempty"`
 }
 
-func GrabUserLock(s3c aws.S3API, bucket *string, lock_path *string) (bool, error) {
+func CheckUserLock(s3c aws.S3API, bucket *string, lock_path *string) (bool, *UserLock, error) {
 	var userLock UserLock
 	err := GetStruct(s3c, bucket, lock_path, &userLock)
 	if err != nil {
@@ -23,34 +23,13 @@ func GrabUserLock(s3c aws.S3API, bucket *string, lock_path *string) (bool, error
 		case *NotFoundError:
 			// good we want this
 		default:
-			return false, err // All other errors return
+			return false, nil, err // All other errors return
 		}
 	}
 	if userLock.User != "" {
-		return false, nil
+		return false, &userLock, nil
 	}
-
-	lock := &UserLock{User: "step", LockReason: "deploy is currently running"}
-	err = PutStruct(s3c, bucket, lock_path, lock)
-	if err != nil {
-		return true, err
-	}
-	return true, nil
-}
-
-func ReleaseUserLock(s3c aws.S3API, bucket *string, lock_path *string) error {
-	var s3_lock UserLock
-
-	err := GetStruct(s3c, bucket, lock_path, &s3_lock)
-	if err != nil {
-		switch err.(type) {
-		case *NotFoundError:
-			// No lock to release
-		default:
-			return err // All other errors return
-		}
-	}
-	return Delete(s3c, bucket, lock_path)
+	return true, nil, nil
 }
 
 // GrabLock creates a lock file in S3 with a UUID

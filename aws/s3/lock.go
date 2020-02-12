@@ -27,6 +27,9 @@ func CheckUserLock(s3c aws.S3API, bucket *string, lock_path *string) error {
 			return err // All other errors return
 		}
 	}
+	if userLock == (UserLock{}) {
+		return nil
+	}
 	return fmt.Errorf("Deploys locked by %v for reason: %v", userLock.User, userLock.LockReason)
 }
 

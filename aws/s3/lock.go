@@ -10,6 +10,29 @@ type Lock struct {
 	UUID string `json:"uuid,omitempty"`
 }
 
+type UserLock struct {
+	User       string `json:"user,omitempty"`
+	LockReason string `json:"lock_reason", omitempty"`
+}
+
+func CheckUserLock(s3c aws.S3API, bucket *string, lock_path *string) error {
+	var userLock UserLock
+	err := GetStruct(s3c, bucket, lock_path, &userLock)
+	if err != nil {
+		switch err.(type) {
+		case *NotFoundError:
+			// good we want this
+			return nil
+		default:
+			return err // All other errors return
+		}
+	}
+	if userLock == (UserLock{}) {
+		return nil
+	}
+	return fmt.Errorf("Deploys locked by %v for reason: %v", userLock.User, userLock.LockReason)
+}
+
 // GrabLock creates a lock file in S3 with a UUID
 // it returns a grabbed bool, and error
 // if the Lock already exists and UUID is equal to the existing lock it will returns true, otherwise false

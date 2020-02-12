@@ -242,15 +242,15 @@ func (r *Release) UnlockRoot(s3c aws.S3API) error {
 
 // GrabLock retrieves the Lock returns LockExistsError, or LockError
 func (r *Release) GrabLocks(s3c aws.S3API) error {
+	if err := r.CheckUserLock(s3c, *r.UserLockPath()); err != nil {
+		return err
+	}
+
 	if err := r.GrabReleaseLock(s3c); err != nil {
 		return err
 	}
 
 	if err := r.GrabRootLock(s3c); err != nil {
-		return err
-	}
-
-	if err := r.CheckUserLock(s3c, *r.UserLockPath()); err != nil {
 		return err
 	}
 
@@ -268,7 +268,7 @@ func (r *Release) GrabReleaseLock(s3c aws.S3API) error {
 func (r *Release) CheckUserLock(s3c aws.S3API, lockPath string) error {
 	err := s3.CheckUserLock(s3c, r.Bucket, &lockPath)
 	if err != nil {
-		return &errors.LockExistsError{err.Error()}
+		return &errors.LockExistsError{fmt.Sprintf("CheckUserLock error: %v", err.Error())}
 	}
 	return nil
 }

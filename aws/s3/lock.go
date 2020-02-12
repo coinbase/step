@@ -23,11 +23,13 @@ func CheckUserLock(s3c aws.S3API, bucket *string, lock_path *string) error {
 		switch err.(type) {
 		case *NotFoundError:
 			// good we want this
+			return nil
 		default:
 			return err // All other errors return
 		}
 	}
-	if userLock.User != "" {
+	// if struct is not empty, then user-lock exists
+	if userLock != (UserLock{}) {
 		return &errors.LockExistsError{fmt.Sprintf("Deploys locked by %v for reason: %v", userLock.User, userLock.LockReason)}
 	}
 

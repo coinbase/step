@@ -265,13 +265,8 @@ func (r *Release) GrabReleaseLock(s3c aws.S3API) error {
 	return r.grabLock(s3c, *r.ReleaseLockPath())
 }
 
-func (r *Release) CheckUserLock(s3c aws.S3API) error {
-	return r.checkUserLock(s3c, *r.UserLockPath())
-}
-
-func (r *Release) checkUserLock(s3c aws.S3API, lockPath string) error {
+func (r *Release) CheckUserLock(s3c aws.S3API, lockPath string) error {
 	err := s3.CheckUserLock(s3c, r.Bucket, &lockPath)
-
 	if err != nil {
 		return err
 	}
@@ -309,7 +304,7 @@ func (r *Release) RootLockPath() *string {
 }
 
 func (r *Release) UserLockPath() *string {
-	s := fmt.Sprintf("%v/user-lock", *r.ReleaseDir())
+	s := fmt.Sprintf("%v/user-lock", *r.RootDir())
 	return &s
 }
 

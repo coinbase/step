@@ -250,7 +250,7 @@ func (r *Release) GrabLocks(s3c aws.S3API) error {
 		return err
 	}
 
-	if err := r.CheckUserLock(s3c); err != nil {
+	if err := r.CheckUserLock(s3c, *r.UserLockPath()); err != nil {
 		return err
 	}
 
@@ -268,7 +268,7 @@ func (r *Release) GrabReleaseLock(s3c aws.S3API) error {
 func (r *Release) CheckUserLock(s3c aws.S3API, lockPath string) error {
 	err := s3.CheckUserLock(s3c, r.Bucket, &lockPath)
 	if err != nil {
-		return err
+		return &errors.LockExistsError{err.Error()}
 	}
 	return nil
 }

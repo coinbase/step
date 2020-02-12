@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/coinbase/step/aws"
-	"github.com/coinbase/step/errors"
 )
 
 type Lock struct {
@@ -28,12 +27,7 @@ func CheckUserLock(s3c aws.S3API, bucket *string, lock_path *string) error {
 			return err // All other errors return
 		}
 	}
-	// if struct is not empty, then user-lock exists
-	if userLock != (UserLock{}) {
-		return &errors.LockExistsError{fmt.Sprintf("Deploys locked by %v for reason: %v", userLock.User, userLock.LockReason)}
-	}
-
-	return nil
+	return fmt.Errorf("Deploys locked by %v for reason: %v", userLock.User, userLock.LockReason)
 }
 
 // GrabLock creates a lock file in S3 with a UUID

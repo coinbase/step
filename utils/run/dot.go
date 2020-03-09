@@ -7,7 +7,6 @@ import (
 
 	"github.com/coinbase/step/machine"
 	"github.com/coinbase/step/machine/state"
-	"github.com/coinbase/step/utils/to"
 )
 
 // Output Dot Format For State Machine
@@ -28,8 +27,8 @@ func toDot(stateMachine *machine.StateMachine) string {
 	return fmt.Sprintf(`digraph StateMachine {
     node      [style="rounded,filled,bold", shape=box, width=2, fontname="Arial" fontcolor="#183153", color="#183153"];
     edge      [style=bold, fontname="Arial", fontcolor="#183153", color="#183153"];
-    _Start    [fillcolor="#183153", shape=circle, label="", width=0.25];
-    _End      [fillcolor="#183153", shape=doublecircle, label="", width=0.3];
+    _Start    [fillcolor="#183153", shape=circle, width=0.25];
+    _End      [fillcolor="#183153", shape=doublecircle, width=0.3];
 
     _Start -> "%v" [weight=1000];
     %v
@@ -125,11 +124,7 @@ func processState(stateNode state.State) string {
 
 		if stateNode.Catch != nil {
 			for _, catch := range stateNode.Catch {
-				catchName := fmt.Sprintf("%q", strings.Join(to.StrSlice(catch.ErrorEquals), ","))
-				if len(catch.ErrorEquals) == 1 && *catch.ErrorEquals[0] == "States.ALL" {
-					catchName = ""
-				}
-				lines = append(lines, fmt.Sprintf(`%q -> %q [color="#949494", label=%q, style=solid];`, name, *catch.Next, catchName))
+				lines = append(lines, fmt.Sprintf(`%q -> %q [color="#949494", style=solid];`, name, *catch.Next))
 			}
 		}
 

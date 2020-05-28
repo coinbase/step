@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go/service/sfn"
-	"github.com/coinbase/step/machine/state"
 	"github.com/coinbase/step/utils/to"
 )
 
@@ -50,11 +49,11 @@ func (sm *Execution) SetLastOutput(output interface{}, err error) {
 	}
 }
 
-func (sm *Execution) EnteredEvent(s state.State, input interface{}) {
+func (sm *Execution) EnteredEvent(s State, input interface{}) {
 	sm.ExecutionHistory = append(sm.ExecutionHistory, createEnteredEvent(s, input))
 }
 
-func (sm *Execution) ExitedEvent(s state.State, output interface{}) {
+func (sm *Execution) ExitedEvent(s State, output interface{}) {
 	sm.ExecutionHistory = append(sm.ExecutionHistory, createExitedEvent(s, output))
 }
 
@@ -92,7 +91,7 @@ func createEvent(name string) HistoryEvent {
 	}
 }
 
-func createEnteredEvent(state state.State, input interface{}) HistoryEvent {
+func createEnteredEvent(state State, input interface{}) HistoryEvent {
 	event := createEvent(fmt.Sprintf("%vStateEntered", *state.GetType()))
 	json_raw, err := json.Marshal(input)
 
@@ -108,7 +107,7 @@ func createEnteredEvent(state state.State, input interface{}) HistoryEvent {
 	return event
 }
 
-func createExitedEvent(state state.State, output interface{}) HistoryEvent {
+func createExitedEvent(state State, output interface{}) HistoryEvent {
 	event := createEvent(fmt.Sprintf("%vStateExited", *state.GetType()))
 	json_raw, err := json.Marshal(output)
 

@@ -3,7 +3,6 @@ package machine
 import (
 	"testing"
 
-	"github.com/coinbase/step/machine/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,8 +53,8 @@ func Test_Parser_Expands_TaskFn(t *testing.T) {
 	assert.Equal(t, *sm.States["A"].GetType(), "Task")
 	assert.Equal(t, *sm.States["B"].GetType(), "Task")
 
-	ataskState := sm.States["A"].(*state.TaskState)
-	btaskState := sm.States["B"].(*state.TaskState)
+	ataskState := sm.States["A"].(*TaskState)
+	btaskState := sm.States["B"].(*TaskState)
 
 	// ORDER
 	assert.Equal(t, ataskState.Parameters, map[string]interface{}{"Task": "A", "Input.$": "$"})

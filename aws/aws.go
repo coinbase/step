@@ -6,6 +6,8 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/credentials/stscreds"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbiface"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/lambda/lambdaiface"
 	"github.com/aws/aws-sdk-go/service/s3"
@@ -21,11 +23,13 @@ import (
 type S3API s3iface.S3API
 type LambdaAPI lambdaiface.LambdaAPI
 type SFNAPI sfniface.SFNAPI
+type DynamoDBAPI dynamodbiface.DynamoDBAPI
 
 type AwsClients interface {
 	S3Client(region *string, account_id *string, role *string) S3API
 	LambdaClient(region *string, account_id *string, role *string) LambdaAPI
 	SFNClient(region *string, account_id *string, role *string) SFNAPI
+	// DynamoDBClient(region *string, account_id *string, role *string) DynamoDBAPI
 }
 
 ////////////
@@ -105,4 +109,8 @@ func (c *Clients) LambdaClient(region *string, account_id *string, role *string)
 
 func (c *Clients) SFNClient(region *string, account_id *string, role *string) SFNAPI {
 	return sfn.New(c.Session(), c.Config(region, account_id, role))
+}
+
+func (c *Clients) DynamoDBClient(region *string, account_id *string, role *string) DynamoDBAPI {
+	return dynamodb.New(c.Session(), c.Config(region, account_id, role))
 }

@@ -13,13 +13,14 @@ import (
 
 func MockRelease() *Release {
 	return &Release{
-		AwsRegion:    to.Strp("region"),
-		AwsAccountID: to.Strp("account"),
-		ReleaseID:    to.TimeUUID("release-"),
-		CreatedAt:    to.Timep(time.Now()),
-		ProjectName:  to.Strp("project"),
-		ConfigName:   to.Strp("config"),
-		Bucket:       to.Strp("bucket"),
+		AwsRegion:     to.Strp("region"),
+		AwsAccountID:  to.Strp("account"),
+		ReleaseID:     to.TimeUUID("release-"),
+		CreatedAt:     to.Timep(time.Now()),
+		ProjectName:   to.Strp("project"),
+		ConfigName:    to.Strp("config"),
+		Bucket:        to.Strp("bucket"),
+		LockTableName: to.Strp("lock"),
 	}
 }
 

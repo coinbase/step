@@ -29,7 +29,7 @@ type AwsClients interface {
 	S3Client(region *string, account_id *string, role *string) S3API
 	LambdaClient(region *string, account_id *string, role *string) LambdaAPI
 	SFNClient(region *string, account_id *string, role *string) SFNAPI
-	// DynamoDBClient(region *string, account_id *string, role *string) DynamoDBAPI
+	DynamoDBClient(region *string, account_id *string, role *string) DynamoDBAPI
 }
 
 ////////////

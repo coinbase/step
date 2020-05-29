@@ -62,7 +62,7 @@ func ValidateHandler(awsc aws.AwsClients) interface{} {
 func LockHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
 		// returns LockExistsError, LockError
-		return release, release.GrabLocks(awsc.S3Client(nil, nil, nil))
+		return release, release.GrabLocks(awsc.S3Client(nil, nil, nil), awsc.DynamoDBClient(nil, nil, nil))
 	}
 }
 
@@ -90,7 +90,7 @@ func DeployHandler(awsc aws.AwsClients) interface{} {
 		}
 
 		release.Success = to.Boolp(true)
-		release.UnlockRoot(awsc.S3Client(nil, nil, nil))
+		release.UnlockRoot(awsc.DynamoDBClient(nil, nil, nil))
 
 		return release, nil
 	}
@@ -99,7 +99,7 @@ func DeployHandler(awsc aws.AwsClients) interface{} {
 func ReleaseLockFailureHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
 
-		if err := release.UnlockRoot(awsc.S3Client(nil, nil, nil)); err != nil {
+		if err := release.UnlockRoot(awsc.DynamoDBClient(nil, nil, nil)); err != nil {
 			return nil, errors.LockError{err.Error()}
 		}
 

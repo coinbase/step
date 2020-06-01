@@ -35,6 +35,17 @@ func Test_DeployHandler_Execution_Works(t *testing.T) {
 		"Deploy",
 		"Success",
 	}, exec.Path())
+
+	t.Run("release lock and root lock acquired", func(t *testing.T) {
+		assert.Equal(t, 2, len(awsc.DynamoDB.PutItemInputs))
+		assert.Contains(t, awsc.DynamoDB.PutItemInputs[0].Item["key"].String(), "00000000/project/development/release-1/lock")
+		assert.Contains(t, awsc.DynamoDB.PutItemInputs[1].Item["key"].String(), "00000000/project/development/lock")
+	})
+
+	t.Run("root lock released", func(t *testing.T) {
+		assert.Equal(t, 1, len(awsc.DynamoDB.DeleteItemInputs))
+		assert.Contains(t, awsc.DynamoDB.DeleteItemInputs[0].Key["key"].String(), "00000000/project/development/lock")
+	})
 }
 
 func Test_DeployHandler_Execution_NoUUIDorSHA_Override(t *testing.T) {
@@ -178,6 +189,11 @@ func Test_DeployHandler_Execution_Errors_Root_LockError(t *testing.T) {
 		"ReleaseLockFailure",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("release lock acquired only", func(t *testing.T) {
+		assert.Equal(t, 1, len(awsc.DynamoDB.PutItemInputs))
+		assert.Contains(t, awsc.DynamoDB.PutItemInputs[0].Item["key"].String(), "00000000/project/development/release-1/lock")
+	})
 }
 
 func Test_DeployHandler_Execution_Errors_LockExistsError(t *testing.T) {
@@ -199,6 +215,11 @@ func Test_DeployHandler_Execution_Errors_LockExistsError(t *testing.T) {
 		"Lock",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("release lock acquired only", func(t *testing.T) {
+		assert.Equal(t, 1, len(awsc.DynamoDB.PutItemInputs))
+		assert.Contains(t, awsc.DynamoDB.PutItemInputs[0].Item["key"].String(), "00000000/project/development/release-1/lock")
+	})
 }
 
 func Test_DeployHandler_Execution_Errors_Release_LockError(t *testing.T) {
@@ -208,7 +229,6 @@ func Test_DeployHandler_Execution_Errors_Release_LockError(t *testing.T) {
 	state_machine := createTestStateMachine(t, awsc)
 
 	uidStr := fmt.Sprintf("{\"uuid\":\"%v\"}", *release.ReleaseID)
-	fmt.Println(uidStr)
 
 	awsc.S3.AddGetObject(*release.ReleaseLockPath(), uidStr, nil)
 
@@ -223,6 +243,10 @@ func Test_DeployHandler_Execution_Errors_Release_LockError(t *testing.T) {
 		"Lock",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("no locks acquired", func(t *testing.T) {
+		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
+	})
 }
 
 // Bad Resource Errors

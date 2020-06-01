@@ -17,11 +17,11 @@ func Test_Lock_GrabRootLock(t *testing.T) {
 	locker := NewInMemoryLocker()
 
 	t.Run("root lock acquired", func(t *testing.T) {
-		assert.NoError(t, r.GrabRootLock(s3c, locker))
+		assert.NoError(t, r.GrabRootLock(s3c, locker, "lambdaname"))
 	})
 
 	t.Run("same root lock acquired", func(t *testing.T) {
-		assert.NoError(t, r.GrabRootLock(s3c, locker))
+		assert.NoError(t, r.GrabRootLock(s3c, locker, "lambdaname"))
 
 		locks := locker.GetLockByNamespace("lambdaname")
 		// We are re-using an existing lock
@@ -30,23 +30,23 @@ func Test_Lock_GrabRootLock(t *testing.T) {
 	})
 
 	t.Run("conflict when acquiring root lock with different uuid", func(t *testing.T) {
-		assert.Error(t, r2.GrabRootLock(s3c, locker))
+		assert.Error(t, r2.GrabRootLock(s3c, locker, "lambdaname"))
 		// There should be no changes in the existing locks
 		assert.Equal(t, len(locker.GetLockByNamespace("lambdaname")), 1)
 	})
 
 	t.Run("root lock released", func(t *testing.T) {
-		assert.NoError(t, r.UnlockRoot(s3c, locker))
+		assert.NoError(t, r.UnlockRoot(s3c, locker, "lambdaname"))
 		assert.Equal(t, len(locker.GetLockByNamespace("lambdaname")), 0)
 	})
 
 	t.Run("same root lock released", func(t *testing.T) {
-		assert.NoError(t, r.UnlockRoot(s3c, locker))
+		assert.NoError(t, r.UnlockRoot(s3c, locker, "lambdaname"))
 		assert.Equal(t, len(locker.GetLockByNamespace("lambdaname")), 0)
 	})
 
 	t.Run("root lock with same uuid acquired", func(t *testing.T) {
-		assert.NoError(t, r2.GrabRootLock(s3c, locker))
+		assert.NoError(t, r2.GrabRootLock(s3c, locker, "lambdaname"))
 		locks := locker.GetLockByNamespace("lambdaname")
 		assert.Equal(t, len(locks), 1)
 		assert.Equal(t, locks[0].lockPath, "account/project/config/lock")

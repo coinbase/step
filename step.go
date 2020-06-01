@@ -143,14 +143,13 @@ func deployRun(release *deployer.Release, zip *string, deployer_arn *string) {
 func newRelease(project *string, config *string, lambda *string, step *string, bucket *string, states *string, region *string, account_id *string) *deployer.Release {
 	return &deployer.Release{
 		Release: bifrost.Release{
-			AwsRegion:     region,
-			AwsAccountID:  account_id,
-			ReleaseID:     to.TimeUUID("release-"),
-			CreatedAt:     to.Timep(time.Now()),
-			ProjectName:   project,
-			ConfigName:    config,
-			Bucket:        bucket,
-			LockTableName: lambda,
+			AwsRegion:    region,
+			AwsAccountID: account_id,
+			ReleaseID:    to.TimeUUID("release-"),
+			CreatedAt:    to.Timep(time.Now()),
+			ProjectName:  project,
+			ConfigName:   config,
+			Bucket:       bucket,
 		},
 		StateMachineJSON: states,
 		LambdaName:       lambda,

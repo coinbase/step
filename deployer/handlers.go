@@ -64,7 +64,7 @@ func LockHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
 		// returns LockExistsError, LockError
 		locker := dynamodb.NewDynamoDBLocker(awsc.DynamoDBClient(nil, nil, nil))
-		return release, release.GrabLocks(awsc.S3Client(nil, nil, nil), locker)
+		return release, release.GrabLocks(awsc.S3Client(nil, nil, nil), locker, getLockTableNameFromContext(ctx, "-locks"))
 	}
 }
 
@@ -93,7 +93,7 @@ func DeployHandler(awsc aws.AwsClients) interface{} {
 
 		release.Success = to.Boolp(true)
 		locker := dynamodb.NewDynamoDBLocker(awsc.DynamoDBClient(nil, nil, nil))
-		release.UnlockRoot(awsc.S3Client(nil, nil, nil), locker)
+		release.UnlockRoot(awsc.S3Client(nil, nil, nil), locker, getLockTableNameFromContext(ctx, "-locks"))
 
 		return release, nil
 	}
@@ -102,10 +102,15 @@ func DeployHandler(awsc aws.AwsClients) interface{} {
 func ReleaseLockFailureHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
 		locker := dynamodb.NewDynamoDBLocker(awsc.DynamoDBClient(nil, nil, nil))
-		if err := release.UnlockRoot(awsc.S3Client(nil, nil, nil), locker); err != nil {
+		if err := release.UnlockRoot(awsc.S3Client(nil, nil, nil), locker, getLockTableNameFromContext(ctx, "-locks")); err != nil {
 			return nil, errors.LockError{err.Error()}
 		}
 
 		return release, nil
 	}
+}
+
+func getLockTableNameFromContext(ctx context.Context, postfix string) string {
+	_, _, lambdaName := to.AwsRegionAccountLambdaNameFromContext(ctx)
+	return fmt.Sprintf("%s%s", lambdaName, postfix)
 }

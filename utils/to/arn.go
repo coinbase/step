@@ -72,6 +72,19 @@ func AwsRegionAccountFromContext(ctx context.Context) (*string, *string) {
 	return &region, &account
 }
 
+func AwsRegionAccountLambdaNameFromContext(ctx context.Context) (string, string, string) {
+	arn, err := LambdaArnFromContext(ctx)
+	if err != nil {
+		return "", "", ""
+	}
+
+	region, account, resource := ArnRegionAccountResource(arn)
+	// function:<lambda name>
+	resourceParts := strings.SplitN(strings.ToLower(resource), ":", 2)
+
+	return region, account, resourceParts[1]
+}
+
 func ArnRegionAccountResource(arnstr string) (string, string, string) {
 	a, err := arn.Parse(arnstr)
 	if err != nil {

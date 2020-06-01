@@ -18,7 +18,15 @@ var (
 	columnTime = "time"
 )
 
-func GrabLock(dc stepaws.DynamoDBAPI, tableName string, lockPath string, uuid string) (bool, error) {
+type DynamoDBLocker struct {
+	client stepaws.DynamoDBAPI
+}
+
+func NewDynamoDBLocker(client stepaws.DynamoDBAPI) *DynamoDBLocker {
+	return &DynamoDBLocker{client}
+}
+
+func (l *DynamoDBLocker) GrabLock(namespace string, lockPath string, uuid string, reason string) (bool, error) {
 	// Construct a conditional expression such that we only allow a new lock
 	// to be created if there is not already one for the same key.
 	condExp := expression.Name(columnKey).AttributeNotExists()
@@ -30,8 +38,8 @@ func GrabLock(dc stepaws.DynamoDBAPI, tableName string, lockPath string, uuid st
 	}
 
 	// Attempt to create a lock
-	_, err = dc.PutItem(&dynamodb.PutItemInput{
-		TableName:                 awssdk.String(tableName),
+	_, err = l.client.PutItem(&dynamodb.PutItemInput{
+		TableName:                 awssdk.String(namespace),
 		ConditionExpression:       expr.Condition(),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),
@@ -61,7 +69,7 @@ func GrabLock(dc stepaws.DynamoDBAPI, tableName string, lockPath string, uuid st
 	return true, nil
 }
 
-func ReleaseLock(dc stepaws.DynamoDBAPI, tableName string, lockPath string, uuid string) error {
+func (l *DynamoDBLocker) ReleaseLock(namespace string, lockPath string, uuid string) error {
 	// Construct a condition expression such that we only allow a lock
 	// to be deleted if the key, and the UUID aligns.
 	condExp := expression.Name(columnId).Equal(expression.Value(uuid))
@@ -71,8 +79,8 @@ func ReleaseLock(dc stepaws.DynamoDBAPI, tableName string, lockPath string, uuid
 	}
 
 	// Attempt to delete lock
-	_, err = dc.DeleteItem(&dynamodb.DeleteItemInput{
-		TableName:                 awssdk.String(tableName),
+	_, err = l.client.DeleteItem(&dynamodb.DeleteItemInput{
+		TableName:                 awssdk.String(namespace),
 		ConditionExpression:       expr.Condition(),
 		ExpressionAttributeNames:  expr.Names(),
 		ExpressionAttributeValues: expr.Values(),

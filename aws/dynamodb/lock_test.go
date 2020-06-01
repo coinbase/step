@@ -27,19 +27,19 @@ func (c *MockDynamoDBClient) DeleteItem(input *dynamodb.DeleteItemInput) (*dynam
 func TestLock(t *testing.T) {
 	t.Run("lock failure", func(t *testing.T) {
 		client := &MockDynamoDBClient{}
-
 		client.putItemCallback = func(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, error) {
 			return nil, awserr.New(dynamodb.ErrCodeConditionalCheckFailedException, "The conditional request failed.", errors.New("fake error"))
 		}
 
-		grabbed, err := GrabLock(client, "tableName", "lockPath", "uuid")
+		locker := &DynamoDBLocker{client}
+
+		grabbed, err := locker.GrabLock("tableName", "lockPath", "uuid", "testing")
 		assert.NoError(t, err)
 		assert.False(t, grabbed)
 	})
 
 	t.Run("lock acquired successfully", func(t *testing.T) {
 		client := &MockDynamoDBClient{}
-
 		client.putItemCallback = func(input *dynamodb.PutItemInput) (*dynamodb.PutItemOutput, error) {
 			assert.Equal(t, "tableName", *input.TableName)
 			assert.Equal(t, "lockPath", *input.Item[columnKey].S)
@@ -53,7 +53,9 @@ func TestLock(t *testing.T) {
 			return &dynamodb.PutItemOutput{}, nil
 		}
 
-		grabbed, err := GrabLock(client, "tableName", "lockPath", "uuid")
+		locker := &DynamoDBLocker{client}
+
+		grabbed, err := locker.GrabLock("tableName", "lockPath", "uuid", "testing")
 		assert.NoError(t, err)
 		assert.True(t, grabbed)
 	})
@@ -66,13 +68,14 @@ func TestUnlock(t *testing.T) {
 			return nil, awserr.New(dynamodb.ErrCodeConditionalCheckFailedException, "The conditional request failed.", errors.New("fake error"))
 		}
 
-		err := ReleaseLock(client, "tableName", "lockPath", "uuid")
+		locker := &DynamoDBLocker{client}
+
+		err := locker.ReleaseLock("tableName", "lockPath", "uuid")
 		assert.Error(t, err)
 	})
 
 	t.Run("unlock released", func(t *testing.T) {
 		client := &MockDynamoDBClient{}
-
 		client.deleteItemCallback = func(input *dynamodb.DeleteItemInput) (*dynamodb.DeleteItemOutput, error) {
 			assert.Equal(t, "tableName", *input.TableName)
 
@@ -83,7 +86,9 @@ func TestUnlock(t *testing.T) {
 			return &dynamodb.DeleteItemOutput{}, nil
 		}
 
-		err := ReleaseLock(client, "tableName", "lockPath", "uuid")
+		locker := &DynamoDBLocker{client}
+
+		err := locker.ReleaseLock("tableName", "lockPath", "uuid")
 		assert.NoError(t, err)
 	})
 }

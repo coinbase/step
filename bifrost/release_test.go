@@ -20,7 +20,7 @@ func MockRelease() *Release {
 		ProjectName:   to.Strp("project"),
 		ConfigName:    to.Strp("config"),
 		Bucket:        to.Strp("bucket"),
-		LockTableName: to.Strp("lock"),
+		LockTableName: to.Strp("lambdaname"),
 	}
 }
 

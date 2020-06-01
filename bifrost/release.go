@@ -242,7 +242,11 @@ func (r *Release) TimedOut() error {
 ///////
 
 // UnlockRootLock deletes the Lock File for the release
-func (r *Release) UnlockRoot(dc aws.DynamoDBAPI) error {
+func (r *Release) UnlockRoot(s3c aws.S3API, dc aws.DynamoDBAPI) error {
+	if err := s3.ReleaseLock(s3c, r.Bucket, r.RootLockPath(), *r.UUID); err != nil {
+		return err
+	}
+
 	return dynamodb.ReleaseLock(dc, *r.LockTableName, *r.RootLockPath(), *r.UUID)
 }
 
@@ -252,23 +256,33 @@ func (r *Release) GrabLocks(s3c aws.S3API, dc aws.DynamoDBAPI) error {
 		return err
 	}
 
-	if err := r.GrabReleaseLock(dc); err != nil {
+	if err := r.GrabReleaseLock(s3c, dc); err != nil {
 		return err
 	}
 
-	if err := r.GrabRootLock(dc); err != nil {
+	if err := r.GrabRootLock(s3c, dc); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *Release) GrabRootLock(dc aws.DynamoDBAPI) error {
-	return r.grabLock(dc, *r.RootLockPath())
+func (r *Release) GrabRootLock(s3c aws.S3API, dc aws.DynamoDBAPI) error {
+	// DEPRECATED: this will gradually be replaced by `grabDynamoDBLock` (below).
+	if err := r.grabS3Lock(s3c, *r.RootLockPath()); err != nil {
+		return err
+	}
+
+	return r.grabDynamoDBLock(dc, *r.RootLockPath())
 }
 
-func (r *Release) GrabReleaseLock(dc aws.DynamoDBAPI) error {
-	return r.grabLock(dc, *r.ReleaseLockPath())
+func (r *Release) GrabReleaseLock(s3c aws.S3API, dc aws.DynamoDBAPI) error {
+	// DEPRECATED: this will gradually be replaced by `grabDynamoDBLock` (below).
+	if err := r.grabS3Lock(s3c, *r.ReleaseLockPath()); err != nil {
+		return err
+	}
+
+	return r.grabDynamoDBLock(dc, *r.ReleaseLockPath())
 }
 
 func (r *Release) CheckUserLock(s3c aws.S3API, lockPath string) error {
@@ -279,7 +293,29 @@ func (r *Release) CheckUserLock(s3c aws.S3API, lockPath string) error {
 	return nil
 }
 
-func (r *Release) grabLock(dc aws.DynamoDBAPI, lockPath string) error {
+// DEPRECATED: this will gradually be replaced by `grabDynamoDBLock` (below),
+// but it is currently preserved for backwards compatibility.
+func (r *Release) grabS3Lock(s3c aws.S3API, lockPath string) error {
+	grabbed, err := s3.GrabLock(s3c, r.Bucket, &lockPath, *r.UUID)
+
+	// Check grabbed first because there are errors that can be thrown before anything is created
+	if !grabbed {
+		if err != nil {
+			return &errors.LockExistsError{err.Error()}
+		}
+
+		return &errors.LockExistsError{fmt.Sprintf("S3 Lock Already Exists at %v:%v", *r.Bucket, lockPath)}
+	}
+
+	// Error if MAYBE grabbed the lock and we should try to unlock
+	if err != nil {
+		return &errors.LockError{err.Error()}
+	}
+
+	return nil
+}
+
+func (r *Release) grabDynamoDBLock(dc aws.DynamoDBAPI, lockPath string) error {
 	grabbed, err := dynamodb.GrabLock(dc, *r.LockTableName, lockPath, *r.UUID)
 
 	// Check grabbed first because there are errors that can be thrown before anything is created
@@ -288,7 +324,7 @@ func (r *Release) grabLock(dc aws.DynamoDBAPI, lockPath string) error {
 			return &errors.LockExistsError{err.Error()}
 		}
 
-		return &errors.LockExistsError{fmt.Sprintf("Lock Already Exists at %v:%v", *r.LockTableName, lockPath)}
+		return &errors.LockExistsError{fmt.Sprintf("DynamoDB Lock Already Exists at %v:%v", *r.LockTableName, lockPath)}
 	}
 
 	// Error if MAYBE grabbed the lock and we should try to unlock

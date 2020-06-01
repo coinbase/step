@@ -147,8 +147,7 @@ func (r *Release) WipeControlledValues() {
 }
 
 // SetDefaults is passed the region and account where the lambda is executed
-// AND the default-bucket-prefix to calculate both the default bucket name, and
-// the lock table name.
+// AND the default-bucket-prefix to calculate the default bucket name.
 func (r *Release) SetDefaults(region *string, account *string, bucket_prefix string) {
 	if is.EmptyStr(r.UUID) {
 		r.UUID = to.TimeUUID("release-")
@@ -170,11 +169,6 @@ func (r *Release) SetDefaults(region *string, account *string, bucket_prefix str
 	if is.EmptyStr(r.Bucket) && account != nil {
 		// default bucket is the default account_id not the release id (which could be in a different account)
 		r.Bucket = to.Strp(fmt.Sprintf("%v%v", bucket_prefix, *account))
-	}
-
-	if is.EmptyStr(r.LockTableName) && account != nil {
-		// default lock table name is the default account_id not the release id (which could be in a different account)
-		r.LockTableName = to.Strp(fmt.Sprintf("%v%v", bucket_prefix, *account))
 	}
 
 	if r.Timeout == nil {

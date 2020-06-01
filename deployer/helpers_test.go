@@ -24,12 +24,13 @@ import (
 func MockRelease() *Release {
 	return &Release{
 		Release: bifrost.Release{
-			AwsAccountID: to.Strp("00000000"),
-			ReleaseID:    to.Strp("release-1"),
-			ProjectName:  to.Strp("project"),
-			ConfigName:   to.Strp("development"),
-			CreatedAt:    to.Timep(time.Now()),
-			Metadata:     map[string]string{"User": "User@user.com"},
+			AwsAccountID:  to.Strp("00000000"),
+			ReleaseID:     to.Strp("release-1"),
+			ProjectName:   to.Strp("project"),
+			ConfigName:    to.Strp("development"),
+			CreatedAt:     to.Timep(time.Now()),
+			Metadata:      map[string]string{"User": "User@user.com"},
+			LockTableName: to.Strp("lambdaname"),
 		},
 		LambdaName:       to.Strp("lambdaname"),
 		StepFnName:       to.Strp("stepfnname"),

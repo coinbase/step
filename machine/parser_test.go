@@ -108,3 +108,10 @@ func Test_Machine_Parser_TaskFn(t *testing.T) {
 	assert.Equal(t, err, nil)
 	assert.NoError(t, sm.Validate())
 }
+
+func Test_Machine_Parser_Map(t *testing.T) {
+	sm, err := ParseFile("../examples/map.json")
+
+	assert.Equal(t, err, nil)
+	assert.NoError(t, sm.Validate())
+}

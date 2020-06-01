@@ -95,6 +95,10 @@ func unmarshallState(name string, raw_json *json.RawMessage) ([]State, error) {
 		var s ParallelState
 		err = json.Unmarshal(*raw_json, &s)
 		newState = &s
+	case "Map":
+		var s MapState
+		err = json.Unmarshal(*raw_json, &s)
+		newState = &s
 	case "TaskFn":
 		// This is a custom state that adds values to Task to be handled
 		var s TaskState

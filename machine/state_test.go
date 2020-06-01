@@ -86,3 +86,12 @@ func parseValidTaskState(b []byte, handler interface{}, t *testing.T) *TaskState
 	assert.NoError(t, state.Validate())
 	return state
 }
+
+func parseMapState(b []byte, t *testing.T) *MapState {
+	var p MapState
+	err := json.Unmarshal(b, &p)
+	assert.NoError(t, err)
+	p.SetName(to.Strp("TestState"))
+	p.SetType(to.Strp("Map"))
+	return &p
+}

@@ -1,4 +1,4 @@
-FROM golang@sha256:6486ea568f95953b86c9687c1e656f4297d9b844481e645a00c0602f26fee136
+FROM golang@sha256:ebe7f5d1a2a6b884bc1a45b8c1ff7e26b7b95938a3e8847ea96fc6761fdc2b77
 
 # Install Zip
 RUN apt-get update && apt-get upgrade -y && apt-get install -y zip

@@ -10,6 +10,8 @@ import (
 	"github.com/coinbase/step/machine"
 	"github.com/coinbase/step/utils/is"
 	"github.com/coinbase/step/utils/to"
+
+	ddlambda "github.com/DataDog/datadog-lambda-go"
 )
 
 // Exec returns a function that will execute the state machine
@@ -67,7 +69,7 @@ func LambdaTasks(task_functions *handler.TaskHandlers) {
 		os.Exit(1)
 	}
 
-	lambda.Start(handler)
+	lambda.Start(ddlambda.WrapHandler(handler, nil))
 
 	fmt.Println("ERROR: lambda.Start returned, but should have blocked")
 	os.Exit(1)

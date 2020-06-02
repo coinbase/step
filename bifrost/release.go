@@ -13,6 +13,11 @@ import (
 	"github.com/coinbase/step/utils/to"
 )
 
+type Locker interface {
+	GrabLock(namespace string, lockPath string, uuid string, reason string) (bool, error)
+	ReleaseLock(namespace string, lockPath string, uuid string) error
+}
+
 // ReleaseError contains the error and cause for the state machine
 type ReleaseError struct {
 	Error *string
@@ -141,7 +146,7 @@ func (r *Release) WipeControlledValues() {
 }
 
 // SetDefaults is passed the region and account where the lambda is executed
-// AND the default-bucket-prefix to calculate the default bucket name
+// AND the default-bucket-prefix to calculate the default bucket name.
 func (r *Release) SetDefaults(region *string, account *string, bucket_prefix string) {
 	if is.EmptyStr(r.UUID) {
 		r.UUID = to.TimeUUID("release-")
@@ -236,12 +241,17 @@ func (r *Release) TimedOut() error {
 ///////
 
 // UnlockRootLock deletes the Lock File for the release
-func (r *Release) UnlockRoot(s3c aws.S3API) error {
-	return s3.ReleaseLock(s3c, r.Bucket, r.RootLockPath(), *r.UUID)
+func (r *Release) UnlockRoot(s3c aws.S3API, locker Locker, lockTableName string) error {
+	err := s3.ReleaseLock(s3c, r.Bucket, r.RootLockPath(), *r.UUID)
+	if err != nil {
+		return err
+	}
+
+	return locker.ReleaseLock(lockTableName, *r.RootLockPath(), *r.UUID)
 }
 
 // GrabLock retrieves the Lock returns LockExistsError, or LockError
-func (r *Release) GrabLocks(s3c aws.S3API) error {
+func (r *Release) GrabLocks(s3c aws.S3API, locker Locker, lockTableName string) error {
 	if err := r.CheckUserLock(s3c, *r.UserLockPath()); err != nil {
 		return err
 	}
@@ -250,19 +260,25 @@ func (r *Release) GrabLocks(s3c aws.S3API) error {
 		return err
 	}
 
-	if err := r.GrabRootLock(s3c); err != nil {
+	if err := r.GrabRootLock(s3c, locker, lockTableName); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *Release) GrabRootLock(s3c aws.S3API) error {
-	return r.grabLock(s3c, *r.RootLockPath())
+func (r *Release) GrabRootLock(s3c aws.S3API, locker Locker, lockTableName string) error {
+	// DEPRECATED: this will gradually be replaced by `grabGenericLock` (below).
+	err := r.grabS3Lock(s3c, *r.RootLockPath())
+	if err != nil {
+		return err
+	}
+
+	return r.grabGenericLock(locker, lockTableName, *r.RootLockPath())
 }
 
 func (r *Release) GrabReleaseLock(s3c aws.S3API) error {
-	return r.grabLock(s3c, *r.ReleaseLockPath())
+	return r.grabS3Lock(s3c, *r.ReleaseLockPath())
 }
 
 func (r *Release) CheckUserLock(s3c aws.S3API, lockPath string) error {
@@ -273,7 +289,9 @@ func (r *Release) CheckUserLock(s3c aws.S3API, lockPath string) error {
 	return nil
 }
 
-func (r *Release) grabLock(s3c aws.S3API, lockPath string) error {
+// DEPRECATED: this will gradually be replaced by `grabGenericLock` (below),
+// but it is currently preserved for backwards compatibility.
+func (r *Release) grabS3Lock(s3c aws.S3API, lockPath string) error {
 	grabbed, err := s3.GrabLock(s3c, r.Bucket, &lockPath, *r.UUID)
 
 	// Check grabbed first because there are errors that can be thrown before anything is created
@@ -282,7 +300,27 @@ func (r *Release) grabLock(s3c aws.S3API, lockPath string) error {
 			return &errors.LockExistsError{err.Error()}
 		}
 
-		return &errors.LockExistsError{fmt.Sprintf("Lock Already Exists at %v:%v", *r.Bucket, lockPath)}
+		return &errors.LockExistsError{fmt.Sprintf("S3 Lock Already Exists at %v:%v", *r.Bucket, lockPath)}
+	}
+
+	// Error if MAYBE grabbed the lock and we should try to unlock
+	if err != nil {
+		return &errors.LockError{err.Error()}
+	}
+
+	return nil
+}
+
+func (r *Release) grabGenericLock(locker Locker, lockTableName string, lockPath string) error {
+	grabbed, err := locker.GrabLock(lockTableName, lockPath, *r.UUID, "")
+
+	// Check grabbed first because there are errors that can be thrown before anything is created
+	if !grabbed {
+		if err != nil {
+			return &errors.LockExistsError{err.Error()}
+		}
+
+		return &errors.LockExistsError{fmt.Sprintf("Lock Already Exists at %v:%v", lockTableName, lockPath)}
 	}
 
 	// Error if MAYBE grabbed the lock and we should try to unlock

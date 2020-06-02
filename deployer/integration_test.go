@@ -35,6 +35,18 @@ func Test_DeployHandler_Execution_Works(t *testing.T) {
 		"Deploy",
 		"Success",
 	}, exec.Path())
+
+	t.Run("root lock acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 1, len(awsc.DynamoDB.PutItemInputs))
+		assert.Contains(t, awsc.DynamoDB.PutItemInputs[0].Item["key"].String(), "00000000/project/development/lock")
+		assert.Equal(t, "lock-locks", *awsc.DynamoDB.PutItemInputs[0].TableName)
+	})
+
+	t.Run("root lock released in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 1, len(awsc.DynamoDB.DeleteItemInputs))
+		assert.Contains(t, awsc.DynamoDB.DeleteItemInputs[0].Key["key"].String(), "00000000/project/development/lock")
+		assert.Equal(t, "lock-locks", *awsc.DynamoDB.PutItemInputs[0].TableName)
+	})
 }
 
 func Test_DeployHandler_Execution_NoUUIDorSHA_Override(t *testing.T) {
@@ -178,6 +190,10 @@ func Test_DeployHandler_Execution_Errors_Root_LockError(t *testing.T) {
 		"ReleaseLockFailure",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("no locks acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
+	})
 }
 
 func Test_DeployHandler_Execution_Errors_LockExistsError(t *testing.T) {
@@ -199,6 +215,10 @@ func Test_DeployHandler_Execution_Errors_LockExistsError(t *testing.T) {
 		"Lock",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("no locks acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
+	})
 }
 
 func Test_DeployHandler_Execution_Errors_Release_LockError(t *testing.T) {
@@ -208,7 +228,6 @@ func Test_DeployHandler_Execution_Errors_Release_LockError(t *testing.T) {
 	state_machine := createTestStateMachine(t, awsc)
 
 	uidStr := fmt.Sprintf("{\"uuid\":\"%v\"}", *release.ReleaseID)
-	fmt.Println(uidStr)
 
 	awsc.S3.AddGetObject(*release.ReleaseLockPath(), uidStr, nil)
 
@@ -223,6 +242,10 @@ func Test_DeployHandler_Execution_Errors_Release_LockError(t *testing.T) {
 		"Lock",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("no locks acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
+	})
 }
 
 // Bad Resource Errors

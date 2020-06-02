@@ -157,7 +157,7 @@ func PutWithTypeAndCacheControl(s3c aws.S3API, bucket *string, path *string, con
 		Key:          path,
 		Body:         bytes.NewReader(*content),
 		ACL:          to.Strp("private"),
-		ContentType: contentType,
+		ContentType:  contentType,
 		CacheControl: cacheControl,
 	})
 }

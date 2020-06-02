@@ -81,6 +81,9 @@ func AwsRegionAccountLambdaNameFromContext(ctx context.Context) (region, account
 	region, account, resource := ArnRegionAccountResource(arn)
 	// function:<lambda name>
 	resourceParts := strings.SplitN(strings.ToLower(resource), ":", 2)
+	if len(resourceParts) < 2 {
+		return region, account, ""
+	}
 
 	return region, account, resourceParts[1]
 }

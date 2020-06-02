@@ -91,15 +91,9 @@ func (l *DynamoDBLocker) ReleaseLock(namespace string, lockPath string, uuid str
 		},
 	})
 
-	if err != nil {
-		awsErr, ok := err.(awserr.Error)
+	if awsErr, ok := err.(awserr.Error); ok && awsErr.Code() == dynamodb.ErrCodeConditionalCheckFailedException {
 		// A lock already exists, but with a different UUID.
-		if ok && awsErr.Code() == dynamodb.ErrCodeConditionalCheckFailedException {
-			return fmt.Errorf("Lock was stolen for release with UUID(%v)", uuid)
-		}
-
-		return err
+		return fmt.Errorf("Lock was stolen for release with UUID(%v)", uuid)
 	}
-
-	return nil
+	return err
 }

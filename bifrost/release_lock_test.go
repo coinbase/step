@@ -1,9 +1,10 @@
 package bifrost
 
 import (
+	"testing"
+
 	"github.com/coinbase/step/utils/to"
 	"github.com/stretchr/testify/assert"
-	"testing"
 )
 
 func Test_Lock_GrabRootLock(t *testing.T) {

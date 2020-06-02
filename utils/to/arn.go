@@ -72,7 +72,7 @@ func AwsRegionAccountFromContext(ctx context.Context) (*string, *string) {
 	return &region, &account
 }
 
-func AwsRegionAccountLambdaNameFromContext(ctx context.Context) (string, string, string) {
+func AwsRegionAccountLambdaNameFromContext(ctx context.Context) (region, account, lambdaName string) {
 	arn, err := LambdaArnFromContext(ctx)
 	if err != nil {
 		return "", "", ""

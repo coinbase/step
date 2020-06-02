@@ -242,7 +242,8 @@ func (r *Release) TimedOut() error {
 
 // UnlockRootLock deletes the Lock File for the release
 func (r *Release) UnlockRoot(s3c aws.S3API, locker Locker, lockTableName string) error {
-	if err := s3.ReleaseLock(s3c, r.Bucket, r.RootLockPath(), *r.UUID); err != nil {
+	err := s3.ReleaseLock(s3c, r.Bucket, r.RootLockPath(), *r.UUID)
+	if err != nil {
 		return err
 	}
 

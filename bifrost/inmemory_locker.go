@@ -12,35 +12,24 @@ type Lock struct {
 }
 
 type InMemoryLocker struct {
+	mu    sync.RWMutex
 	locks map[string][]*Lock
-
-	mx sync.Mutex
 }
 
 func NewInMemoryLocker() *InMemoryLocker {
-	return &InMemoryLocker{}
-}
-
-func (l *InMemoryLocker) init() {
-	if l.locks == nil {
-		l.locks = map[string][]*Lock{}
+	return &InMemoryLocker{
+		locks: make(map[string][]*Lock),
 	}
 }
 
 func (l *InMemoryLocker) GrabLock(namespace string, lockPath string, uuid string, reason string) (bool, error) {
-	l.mx.Lock()
-	defer l.mx.Unlock()
-
-	l.init()
-
 	existingLock := l.GetLockByPath(namespace, lockPath)
 	if existingLock != nil {
-		if existingLock.uuid == uuid {
-			return true, nil
-		} else {
-			return false, nil
-		}
+		return existingLock.uuid == uuid, nil
 	}
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
 	l.locks[namespace] = append(l.locks[namespace], &Lock{
 		lockPath: lockPath,
@@ -52,15 +41,13 @@ func (l *InMemoryLocker) GrabLock(namespace string, lockPath string, uuid string
 }
 
 func (l *InMemoryLocker) ReleaseLock(namespace string, lockPath string, uuid string) error {
-	l.mx.Lock()
-	defer l.mx.Unlock()
-
-	l.init()
-
 	existingLock := l.GetLockByPath(namespace, lockPath)
 	if existingLock != nil && existingLock.uuid != uuid {
 		return fmt.Errorf("failed to release lock: %s is currently held by UUID(%v)", lockPath, existingLock.uuid)
 	}
+
+	l.mu.Lock()
+	defer l.mu.Unlock()
 
 	var updatedLocks []*Lock
 	for _, lock := range l.locks[namespace] {
@@ -76,6 +63,9 @@ func (l *InMemoryLocker) ReleaseLock(namespace string, lockPath string, uuid str
 }
 
 func (l *InMemoryLocker) GetLockByNamespace(namespace string) []*Lock {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+
 	locks, found := l.locks[namespace]
 	if !found {
 		return []*Lock{}
@@ -85,6 +75,9 @@ func (l *InMemoryLocker) GetLockByNamespace(namespace string) []*Lock {
 }
 
 func (l *InMemoryLocker) GetLockByPath(namespace string, lockPath string) *Lock {
+	l.mu.RLock()
+	defer l.mu.RUnlock()
+
 	for _, lock := range l.GetLockByNamespace(namespace) {
 		if lock.lockPath == lockPath {
 			return lock

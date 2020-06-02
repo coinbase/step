@@ -36,15 +36,16 @@ func Test_DeployHandler_Execution_Works(t *testing.T) {
 		"Success",
 	}, exec.Path())
 
-	t.Run("release lock and root lock acquired", func(t *testing.T) {
-		assert.Equal(t, 2, len(awsc.DynamoDB.PutItemInputs))
-		assert.Contains(t, awsc.DynamoDB.PutItemInputs[0].Item["key"].String(), "00000000/project/development/release-1/lock")
-		assert.Contains(t, awsc.DynamoDB.PutItemInputs[1].Item["key"].String(), "00000000/project/development/lock")
+	t.Run("root lock acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 1, len(awsc.DynamoDB.PutItemInputs))
+		assert.Contains(t, awsc.DynamoDB.PutItemInputs[0].Item["key"].String(), "00000000/project/development/lock")
+		assert.Equal(t, "lock-locks", *awsc.DynamoDB.PutItemInputs[0].TableName)
 	})
 
-	t.Run("root lock released", func(t *testing.T) {
+	t.Run("root lock released in dynamodb", func(t *testing.T) {
 		assert.Equal(t, 1, len(awsc.DynamoDB.DeleteItemInputs))
 		assert.Contains(t, awsc.DynamoDB.DeleteItemInputs[0].Key["key"].String(), "00000000/project/development/lock")
+		assert.Equal(t, "lock-locks", *awsc.DynamoDB.PutItemInputs[0].TableName)
 	})
 }
 
@@ -190,9 +191,8 @@ func Test_DeployHandler_Execution_Errors_Root_LockError(t *testing.T) {
 		"FailureClean",
 	}, exec.Path())
 
-	t.Run("release lock acquired only", func(t *testing.T) {
-		assert.Equal(t, 1, len(awsc.DynamoDB.PutItemInputs))
-		assert.Contains(t, awsc.DynamoDB.PutItemInputs[0].Item["key"].String(), "00000000/project/development/release-1/lock")
+	t.Run("no locks acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
 	})
 }
 
@@ -216,9 +216,8 @@ func Test_DeployHandler_Execution_Errors_LockExistsError(t *testing.T) {
 		"FailureClean",
 	}, exec.Path())
 
-	t.Run("release lock acquired only", func(t *testing.T) {
-		assert.Equal(t, 1, len(awsc.DynamoDB.PutItemInputs))
-		assert.Contains(t, awsc.DynamoDB.PutItemInputs[0].Item["key"].String(), "00000000/project/development/release-1/lock")
+	t.Run("no locks acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
 	})
 }
 
@@ -244,7 +243,7 @@ func Test_DeployHandler_Execution_Errors_Release_LockError(t *testing.T) {
 		"FailureClean",
 	}, exec.Path())
 
-	t.Run("no locks acquired", func(t *testing.T) {
+	t.Run("no locks acquired in dynamodb", func(t *testing.T) {
 		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
 	})
 }

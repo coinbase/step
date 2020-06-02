@@ -256,7 +256,7 @@ func (r *Release) GrabLocks(s3c aws.S3API, locker Locker, lockTableName string) 
 		return err
 	}
 
-	if err := r.GrabReleaseLock(s3c, locker, lockTableName); err != nil {
+	if err := r.GrabReleaseLock(s3c); err != nil {
 		return err
 	}
 
@@ -269,20 +269,16 @@ func (r *Release) GrabLocks(s3c aws.S3API, locker Locker, lockTableName string) 
 
 func (r *Release) GrabRootLock(s3c aws.S3API, locker Locker, lockTableName string) error {
 	// DEPRECATED: this will gradually be replaced by `grabGenericLock` (below).
-	if err := r.grabS3Lock(s3c, *r.RootLockPath()); err != nil {
+	err := r.grabS3Lock(s3c, *r.RootLockPath())
+	if err != nil {
 		return err
 	}
 
 	return r.grabGenericLock(locker, lockTableName, *r.RootLockPath())
 }
 
-func (r *Release) GrabReleaseLock(s3c aws.S3API, locker Locker, lockTableName string) error {
-	// DEPRECATED: this will gradually be replaced by `grabGenericLock` (below).
-	if err := r.grabS3Lock(s3c, *r.ReleaseLockPath()); err != nil {
-		return err
-	}
-
-	return r.grabGenericLock(locker, lockTableName, *r.ReleaseLockPath())
+func (r *Release) GrabReleaseLock(s3c aws.S3API) error {
+	return r.grabS3Lock(s3c, *r.ReleaseLockPath())
 }
 
 func (r *Release) CheckUserLock(s3c aws.S3API, lockPath string) error {

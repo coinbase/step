@@ -122,3 +122,16 @@ func Test_JSONPath_GetString(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, *out, test)
 }
+
+func Test_JSONPath_GetSplice(t *testing.T) {
+	test := []interface{}{1,2,3}
+	outer := map[string]interface{}{"x": test}
+
+	path, err := NewPath("$.x")
+	assert.NoError(t, err)
+
+	out, err := path.GetSlice(outer)
+	assert.NoError(t, err)
+	assert.Equal(t, out, test)
+
+}

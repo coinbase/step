@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/coinbase/step/machine/state"
 	"github.com/coinbase/step/utils/to"
 )
 
@@ -56,7 +55,7 @@ type stateType struct {
 	Type string
 }
 
-func unmarshallState(name string, raw_json *json.RawMessage) ([]state.State, error) {
+func unmarshallState(name string, raw_json *json.RawMessage) ([]State, error) {
 	var err error
 
 	// extract type (safer than regex)
@@ -65,40 +64,44 @@ func unmarshallState(name string, raw_json *json.RawMessage) ([]state.State, err
 		return nil, err
 	}
 
-	var newState state.State
+	var newState State
 
 	switch state_type.Type {
 	case "Pass":
-		var s state.PassState
+		var s PassState
 		err = json.Unmarshal(*raw_json, &s)
 		newState = &s
 	case "Task":
-		var s state.TaskState
+		var s TaskState
 		err = json.Unmarshal(*raw_json, &s)
 		newState = &s
 	case "Choice":
-		var s state.ChoiceState
+		var s ChoiceState
 		err = json.Unmarshal(*raw_json, &s)
 		newState = &s
 	case "Wait":
-		var s state.WaitState
+		var s WaitState
 		err = json.Unmarshal(*raw_json, &s)
 		newState = &s
 	case "Succeed":
-		var s state.SucceedState
+		var s SucceedState
 		err = json.Unmarshal(*raw_json, &s)
 		newState = &s
 	case "Fail":
-		var s state.FailState
+		var s FailState
 		err = json.Unmarshal(*raw_json, &s)
 		newState = &s
 	case "Parallel":
-		var s state.ParallelState
+		var s ParallelState
+		err = json.Unmarshal(*raw_json, &s)
+		newState = &s
+	case "Map":
+		var s MapState
 		err = json.Unmarshal(*raw_json, &s)
 		newState = &s
 	case "TaskFn":
 		// This is a custom state that adds values to Task to be handled
-		var s state.TaskState
+		var s TaskState
 		err = json.Unmarshal(*raw_json, &s)
 		// This will inject the Task name into the input
 		s.Parameters = map[string]interface{}{"Task": name, "Input.$": "$"}
@@ -117,5 +120,5 @@ func unmarshallState(name string, raw_json *json.RawMessage) ([]state.State, err
 	newName := name
 	newState.SetName(&newName) // Require New Variable Pointer
 
-	return []state.State{newState}, nil
+	return []State{newState}, nil
 }

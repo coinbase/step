@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/coinbase/step/machine"
-	"github.com/coinbase/step/machine/state"
 	"github.com/coinbase/step/utils/to"
 )
 
@@ -36,7 +35,7 @@ func toDot(stateMachine *machine.StateMachine) string {
 }`, *stateMachine.StartAt, processStates(*stateMachine.StartAt, stateMachine.States))
 }
 
-func processStates(start string, states map[string]state.State) string {
+func processStates(start string, states map[string]machine.State) string {
 	orderedStates := orderStates(start, states)
 
 	var stateStrings []string
@@ -47,27 +46,27 @@ func processStates(start string, states map[string]state.State) string {
 }
 
 // Order states from start to end consistently to generate deterministic graphs.
-func orderStates(start string, states map[string]state.State) []state.State {
-	var orderedStates []state.State
+func orderStates(start string, states map[string]machine.State) []machine.State {
+	var orderedStates []machine.State
 	startState := states[start]
-	stateQueue := []state.State{startState}
+	stateQueue := []machine.State{startState}
 	seenStates := make(map[string]struct{})
 
 	for len(stateQueue) > 0 {
-		var stateNode state.State
+		var stateNode machine.State
 		stateNode, stateQueue = stateQueue[0], stateQueue[1:]
 
 		orderedStates = append(orderedStates, stateNode)
 
-		var connectedStates []state.State
+		var connectedStates []machine.State
 		switch stateNode.(type) {
-		case *state.PassState:
-			stateNode := stateNode.(*state.PassState)
+		case *machine.PassState:
+			stateNode := stateNode.(*machine.PassState)
 			if stateNode.Next != nil {
 				connectedStates = append(connectedStates, states[*stateNode.Next])
 			}
-		case *state.TaskState:
-			stateNode := stateNode.(*state.TaskState)
+		case *machine.TaskState:
+			stateNode := stateNode.(*machine.TaskState)
 
 			if stateNode.Catch != nil {
 				for _, catch := range stateNode.Catch {
@@ -78,16 +77,16 @@ func orderStates(start string, states map[string]state.State) []state.State {
 			if stateNode.Next != nil {
 				connectedStates = append(connectedStates, states[*stateNode.Next])
 			}
-		case *state.ChoiceState:
-			stateNode := stateNode.(*state.ChoiceState)
+		case *machine.ChoiceState:
+			stateNode := stateNode.(*machine.ChoiceState)
 
 			if stateNode.Choices != nil {
 				for _, choice := range stateNode.Choices {
 					connectedStates = append(connectedStates, states[*choice.Next])
 				}
 			}
-		case *state.WaitState:
-			stateNode := stateNode.(*state.WaitState)
+		case *machine.WaitState:
+			stateNode := stateNode.(*machine.WaitState)
 
 			if stateNode.Next != nil {
 				connectedStates = append(connectedStates, states[*stateNode.Next])
@@ -106,12 +105,12 @@ func orderStates(start string, states map[string]state.State) []state.State {
 	return orderedStates
 }
 
-func processState(stateNode state.State) string {
+func processState(stateNode machine.State) string {
 	var lines []string
 	name := *stateNode.Name()
 	switch stateNode.(type) {
-	case *state.PassState:
-		stateNode := stateNode.(*state.PassState)
+	case *machine.PassState:
+		stateNode := stateNode.(*machine.PassState)
 		lines = append(lines, fmt.Sprintf(`%q [fillcolor="#FBFBFB"];`, name))
 		if stateNode.Next != nil {
 			lines = append(lines, fmt.Sprintf(`%q -> %q [weight=100];`, name, *stateNode.Next))
@@ -119,8 +118,8 @@ func processState(stateNode state.State) string {
 		if stateNode.End != nil {
 			lines = append(lines, fmt.Sprintf(`%q -> _End;`, name))
 		}
-	case *state.TaskState:
-		stateNode := stateNode.(*state.TaskState)
+	case *machine.TaskState:
+		stateNode := stateNode.(*machine.TaskState)
 		lines = append(lines, fmt.Sprintf(`%q [fillcolor="#FBFBFB"];`, name))
 
 		if stateNode.Catch != nil {
@@ -140,8 +139,8 @@ func processState(stateNode state.State) string {
 		if stateNode.End != nil {
 			lines = append(lines, fmt.Sprintf(`%q -> _End;`, name))
 		}
-	case *state.ChoiceState:
-		stateNode := stateNode.(*state.ChoiceState)
+	case *machine.ChoiceState:
+		stateNode := stateNode.(*machine.ChoiceState)
 		lines = append(lines, fmt.Sprintf(`%q [shape=egg, fillcolor="#FBFBFB"];`, name))
 
 		if stateNode.Choices != nil {
@@ -149,18 +148,18 @@ func processState(stateNode state.State) string {
 				lines = append(lines, fmt.Sprintf(`%q -> %q [weight=100];`, name, *choice.Next))
 			}
 		}
-	case *state.WaitState:
-		stateNode := stateNode.(*state.WaitState)
+	case *machine.WaitState:
+		stateNode := stateNode.(*machine.WaitState)
 
 		lines = append(lines, fmt.Sprintf(`%q [width=0.5, shape=doublecircle, fillcolor="#FBFBFB", label="Wait"];`, name))
 
 		if stateNode.Next != nil {
 			lines = append(lines, fmt.Sprintf(`%q -> %q [weight=100];`, name, *stateNode.Next))
 		}
-	case *state.FailState:
+	case *machine.FailState:
 		lines = append(lines, fmt.Sprintf(`%q [fillcolor="#F9E4D1"];`, name))
 		lines = append(lines, fmt.Sprintf(`%q -> _End [weight=1000];`, name))
-	case *state.SucceedState:
+	case *machine.SucceedState:
 		lines = append(lines, fmt.Sprintf(`%q [fillcolor="#e5eddb"];`, name))
 		lines = append(lines, fmt.Sprintf(`%q -> _End [weight=1000];`, name))
 	}

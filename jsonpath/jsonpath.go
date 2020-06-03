@@ -206,6 +206,25 @@ func (path *Path) Get(input interface{}) (value interface{}, err error) {
 	return recursiveGet(input, path.path)
 }
 
+// GetSlice returns array from Path
+
+func (path *Path) GetSlice(input interface{}) (output []interface{}, err error ) {
+	output_value, err := path.Get(input)
+
+	if err != nil {
+		return nil, fmt.Errorf("GetSlice Error %q", err)
+	}
+
+	switch output_value.(type) {
+	case []interface{}:
+		output = output_value.([]interface{})
+	default:
+		return nil, fmt.Errorf("GetSlice Error: must be an array")
+	}
+
+	return output, nil
+}
+
 // Set sets a Value in a map with Path
 func (path *Path) Set(input interface{}, value interface{}) (output map[string]interface{}, err error) {
 	var set_path []string

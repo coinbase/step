@@ -1,4 +1,4 @@
-package state
+package machine
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 
 // TYPES
 
-type Execution func(context.Context, interface{}) (interface{}, *string, error)
+type ExecutionFn func(context.Context, interface{}) (interface{}, *string, error)
 
 type State interface {
 	Execute(context.Context, interface{}) (interface{}, *string, error)
@@ -98,7 +98,7 @@ func nextState(next *string, end *bool) *string {
 // Shared Methods
 //////
 
-func processRetrier(retryName *string, retriers []*Retrier, exec Execution) Execution {
+func processRetrier(retryName *string, retriers []*Retrier, exec ExecutionFn) ExecutionFn {
 	return func(ctx context.Context, input interface{}) (interface{}, *string, error) {
 		// Simulate Retry once, not actually waiting
 		output, next, err := exec(ctx, input)
@@ -132,7 +132,7 @@ func processRetrier(retryName *string, retriers []*Retrier, exec Execution) Exec
 	}
 }
 
-func processCatcher(catchers []*Catcher, exec Execution) Execution {
+func processCatcher(catchers []*Catcher, exec ExecutionFn) ExecutionFn {
 	return func(ctx context.Context, input interface{}) (interface{}, *string, error) {
 		output, next, err := exec(ctx, input)
 
@@ -155,7 +155,7 @@ func processCatcher(catchers []*Catcher, exec Execution) Execution {
 	}
 }
 
-func processError(s State, exec Execution) Execution {
+func processError(s State, exec ExecutionFn) ExecutionFn {
 	return func(ctx context.Context, input interface{}) (interface{}, *string, error) {
 		output, next, err := exec(ctx, input)
 
@@ -165,7 +165,7 @@ func processError(s State, exec Execution) Execution {
 		return output, next, nil
 	}
 }
-func inputOutput(inputPath *jsonpath.Path, outputPath *jsonpath.Path, exec Execution) Execution {
+func inputOutput(inputPath *jsonpath.Path, outputPath *jsonpath.Path, exec ExecutionFn) ExecutionFn {
 	return func(ctx context.Context, input interface{}) (interface{}, *string, error) {
 		input, err := inputPath.Get(input)
 
@@ -189,7 +189,7 @@ func inputOutput(inputPath *jsonpath.Path, outputPath *jsonpath.Path, exec Execu
 	}
 }
 
-func withParams(params interface{}, exec Execution) Execution {
+func withParams(params interface{}, exec ExecutionFn) ExecutionFn {
 	return func(ctx context.Context, input interface{}) (interface{}, *string, error) {
 		if params == nil {
 			return exec(ctx, input)
@@ -243,7 +243,7 @@ func replaceParamsJSONPath(params interface{}, input interface{}) (interface{}, 
 	return params, nil
 }
 
-func result(resultPath *jsonpath.Path, exec Execution) Execution {
+func result(resultPath *jsonpath.Path, exec ExecutionFn) ExecutionFn {
 	return func(ctx context.Context, input interface{}) (interface{}, *string, error) {
 		result, next, err := exec(ctx, input)
 

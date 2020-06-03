@@ -9,7 +9,6 @@ import (
 
 	"github.com/aws/aws-lambda-go/lambdacontext"
 	"github.com/coinbase/step/handler"
-	"github.com/coinbase/step/machine/state"
 	"github.com/coinbase/step/utils/is"
 	"github.com/coinbase/step/utils/to"
 )
@@ -27,7 +26,7 @@ var EmptyStateMachine = `{
 // IMPLEMENTATION
 
 // States is the collection of states
-type States map[string]state.State
+type States map[string]State
 
 // StateMachine the core struct for the machine
 type StateMachine struct {
@@ -52,7 +51,7 @@ func Validate(sm_json *string) error {
 	return nil
 }
 
-func (sm *StateMachine) FindTask(name string) (*state.TaskState, error) {
+func (sm *StateMachine) FindTask(name string) (*TaskState, error) {
 	task, ok := sm.Tasks()[name]
 
 	if !ok {
@@ -62,12 +61,12 @@ func (sm *StateMachine) FindTask(name string) (*state.TaskState, error) {
 	return task, nil
 }
 
-func (sm *StateMachine) Tasks() map[string]*state.TaskState {
-	tasks := map[string]*state.TaskState{}
+func (sm *StateMachine) Tasks() map[string]*TaskState {
+	tasks := map[string]*TaskState{}
 	for name, s := range sm.States {
 		switch s.(type) {
-		case *state.TaskState:
-			tasks[name] = s.(*state.TaskState)
+		case *TaskState:
+			tasks[name] = s.(*TaskState)
 		}
 	}
 	return tasks

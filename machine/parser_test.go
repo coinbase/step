@@ -3,7 +3,6 @@ package machine
 import (
 	"testing"
 
-	"github.com/coinbase/step/machine/state"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -54,8 +53,8 @@ func Test_Parser_Expands_TaskFn(t *testing.T) {
 	assert.Equal(t, *sm.States["A"].GetType(), "Task")
 	assert.Equal(t, *sm.States["B"].GetType(), "Task")
 
-	ataskState := sm.States["A"].(*state.TaskState)
-	btaskState := sm.States["B"].(*state.TaskState)
+	ataskState := sm.States["A"].(*TaskState)
+	btaskState := sm.States["B"].(*TaskState)
 
 	// ORDER
 	assert.Equal(t, ataskState.Parameters, map[string]interface{}{"Task": "A", "Input.$": "$"})
@@ -108,4 +107,18 @@ func Test_Machine_Parser_TaskFn(t *testing.T) {
 
 	assert.Equal(t, err, nil)
 	assert.NoError(t, sm.Validate())
+}
+
+func Test_Machine_Parser_Map(t *testing.T) {
+	sm, err := ParseFile("../examples/map.json")
+	var mapState *MapState
+	mapState = sm.States["Start"].(*MapState)
+	assert.Equal(t, err, nil)
+	assert.NoError(t, sm.Validate())
+	assert.Equal(t, "$.detail", mapState.InputPath.String(), )
+	assert.Equal(t, "$.shipped", mapState.ItemsPath.String(), )
+	assert.Equal(t, "$.detail.shipped", mapState.ResultPath.String(), )
+	assert.Equal(t, 1, len(mapState.Iterator.States))
+	assert.Equal(t, "Task", *mapState.Iterator.States["Validate"].GetType(), )
+
 }

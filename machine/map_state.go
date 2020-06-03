@@ -13,11 +13,11 @@ type MapState struct {
 	Type    *string
 	Comment *string `json:",omitempty"`
 
-	Iterator  *StateMachine
-	ItemsPath *jsonpath.Path `json:",omitempty"`
+	Iterator   *StateMachine
+	ItemsPath  *jsonpath.Path `json:",omitempty"`
 	Parameters interface{}    `json:",omitempty"`
 
-	MaxConcurrency     *float64       `json:",omitempty"`
+	MaxConcurrency *float64 `json:",omitempty"`
 
 	InputPath  *jsonpath.Path `json:",omitempty"`
 	OutputPath *jsonpath.Path `json:",omitempty"`
@@ -35,15 +35,17 @@ func (s *MapState) process(ctx context.Context, input interface{}) (interface{},
 	if err != nil {
 		return input, nextState(s.Next, s.End), err
 	}
-	outputResults := []interface{}{}
+	var res []map[string]interface{}
+
 	for _, item := range output {
 		execution, err := s.Iterator.Execute(item)
 		if err != nil {
 			return input, nextState(s.Next, s.End), err
 		}
-		outputResults = append(outputResults, execution.Output)
+		res = append(res, execution.Output)
 	}
-	return outputResults, nextState(s.Next, s.End), nil
+
+	return res, nextState(s.Next, s.End), nil
 }
 
 func (s *MapState) Execute(ctx context.Context, input interface{}) (output interface{}, next *string, err error) {
@@ -78,7 +80,7 @@ func (s *MapState) Validate() error {
 		return fmt.Errorf("%v Requires Iterator", errorPrefix(s))
 	}
 
-	if err:= s.Iterator.Validate(); err != nil {
+	if err := s.Iterator.Validate(); err != nil {
 		return fmt.Errorf("%v %v", errorPrefix(s), err)
 	}
 	return nil

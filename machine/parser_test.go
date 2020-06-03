@@ -111,7 +111,14 @@ func Test_Machine_Parser_TaskFn(t *testing.T) {
 
 func Test_Machine_Parser_Map(t *testing.T) {
 	sm, err := ParseFile("../examples/map.json")
-
+	var mapState *MapState
+	mapState = sm.States["Start"].(*MapState)
 	assert.Equal(t, err, nil)
 	assert.NoError(t, sm.Validate())
+	assert.Equal(t, "$.detail", mapState.InputPath.String(), )
+	assert.Equal(t, "$.shipped", mapState.ItemsPath.String(), )
+	assert.Equal(t, "$.detail.shipped", mapState.ResultPath.String(), )
+	assert.Equal(t, 1, len(mapState.Iterator.States))
+	assert.Equal(t, "Task", *mapState.Iterator.States["Validate"].GetType(), )
+
 }

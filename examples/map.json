@@ -6,6 +6,7 @@
       "Type": "Map",
       "InputPath": "$.detail",
       "ItemsPath": "$.shipped",
+      "ResultPath": "$.detail.shipped",
       "MaxConcurrency": 0,
       "Iterator": {
         "StartAt": "Validate",
@@ -17,7 +18,6 @@
           }
         }
       },
-      "ResultPath": "$.detail.shipped",
       "End": true
     }
   }

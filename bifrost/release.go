@@ -300,7 +300,13 @@ func (r *Release) grabS3Lock(s3c aws.S3API, lockPath string) error {
 			return &errors.LockExistsError{err.Error()}
 		}
 
-		return &errors.LockExistsError{fmt.Sprintf("S3 Lock Already Exists at %v:%v", *r.Bucket, lockPath)}
+		return &errors.LockExistsError{
+			fmt.Sprintf(
+				"S3 Lock Already Exists at %v:%v\nRun the following to clear it: " +
+				"aws s3 rm s3://%[1]v/%[2]v",
+				*r.Bucket, lockPath,
+			),
+		}
 	}
 
 	// Error if MAYBE grabbed the lock and we should try to unlock
@@ -320,7 +326,13 @@ func (r *Release) grabGenericLock(locker Locker, lockTableName string, lockPath 
 			return &errors.LockExistsError{err.Error()}
 		}
 
-		return &errors.LockExistsError{fmt.Sprintf("Lock Already Exists at %v:%v", lockTableName, lockPath)}
+		return &errors.LockExistsError{
+			fmt.Sprintf(
+				"Lock Already Exists at %v:%v\nRun the following to clear it: " +
+				"aws dynamodb delete-item --table-name %[1]v --key='{\"file_name\": {\"S\": \"%[2]v\" }}'",
+				lockTableName, lockPath,
+			),
+		}
 	}
 
 	// Error if MAYBE grabbed the lock and we should try to unlock

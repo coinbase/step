@@ -124,7 +124,7 @@ func Test_JSONPath_GetString(t *testing.T) {
 }
 
 func Test_JSONPath_GetSplice(t *testing.T) {
-	test := []interface{}{1,2,3}
+	test := []interface{}{1, 2, 3}
 	outer := map[string]interface{}{"x": test}
 
 	path, err := NewPath("$.x")

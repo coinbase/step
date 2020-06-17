@@ -208,7 +208,7 @@ func (path *Path) Get(input interface{}) (value interface{}, err error) {
 
 // GetSlice returns array from Path
 
-func (path *Path) GetSlice(input interface{}) (output []interface{}, err error ) {
+func (path *Path) GetSlice(input interface{}) (output []interface{}, err error) {
 	output_value, err := path.Get(input)
 
 	if err != nil {

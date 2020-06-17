@@ -98,7 +98,7 @@ func Test_MapState_Catch(t *testing.T) {
 
 	// No Input path data. Should be caught
 	testState(state, stateTestData{
-		Input: map[string]interface{}{},
+		Input:  map[string]interface{}{},
 		Output: map[string]interface{}{"Error": "errorString", "Cause": "GetSlice Error \"Not Found\""},
 	}, t)
 

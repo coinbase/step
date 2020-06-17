@@ -93,7 +93,7 @@ func DeployHandler(awsc aws.AwsClients) interface{} {
 
 		release.Success = to.Boolp(true)
 		locker := dynamodb.NewDynamoDBLocker(awsc.DynamoDBClient(nil, nil, nil))
-		release.UnlockRoot(awsc.S3Client(nil, nil, nil), locker, getLockTableNameFromContext(ctx, "-locks"))
+		release.UnlockRoot(locker, getLockTableNameFromContext(ctx, "-locks"))
 
 		return release, nil
 	}
@@ -102,7 +102,7 @@ func DeployHandler(awsc aws.AwsClients) interface{} {
 func ReleaseLockFailureHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
 		locker := dynamodb.NewDynamoDBLocker(awsc.DynamoDBClient(nil, nil, nil))
-		if err := release.UnlockRoot(awsc.S3Client(nil, nil, nil), locker, getLockTableNameFromContext(ctx, "-locks")); err != nil {
+		if err := release.UnlockRoot(locker, getLockTableNameFromContext(ctx, "-locks")); err != nil {
 			return nil, errors.LockError{err.Error()}
 		}
 

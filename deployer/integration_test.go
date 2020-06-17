@@ -5,6 +5,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/aws/aws-sdk-go/aws/awserr"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
 	"github.com/aws/aws-sdk-go/service/lambda"
 	"github.com/aws/aws-sdk-go/service/sfn"
 	"github.com/coinbase/step/utils/to"
@@ -27,7 +29,7 @@ func Test_DeployHandler_Execution_Works(t *testing.T) {
 	assert.Equal(t, output["success"], true)
 	assert.NotRegexp(t, "error", exec.LastOutputJSON)
 
-	assertNoRootLockWithReleseLock(t, awsc, release)
+	assertHasReleaseLock(t, awsc, release)
 	assert.Equal(t, []string{
 		"Validate",
 		"Lock",
@@ -79,12 +81,16 @@ func Test_DeployHandler_Execution_Errors_BadInput(t *testing.T) {
 
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
-	assertNoRootLockNoReleseLock(t, awsc, release)
+	assertNoReleaseLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("no locks acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
+	})
 }
 
 func Test_DeployHandler_Execution_UnmarhsallError(t *testing.T) {
@@ -97,12 +103,16 @@ func Test_DeployHandler_Execution_UnmarhsallError(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "UnmarshalError", exec.LastOutputJSON)
 	assert.Regexp(t, "asd", exec.LastOutputJSON)
-	assertNoRootLockNoReleseLock(t, awsc, release)
+	assertNoReleaseLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("no locks acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
+	})
 }
 
 func Test_DeployHandler_Execution_Errors_Release(t *testing.T) {
@@ -118,12 +128,15 @@ func Test_DeployHandler_Execution_Errors_Release(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "ReleaseID must", exec.LastOutputJSON)
-	assertNoRootLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("no locks acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
+	})
 }
 
 func Test_DeployHandler_Execution_Errors_CreatedAt_Future(t *testing.T) {
@@ -139,12 +152,16 @@ func Test_DeployHandler_Execution_Errors_CreatedAt_Future(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "older", exec.LastOutputJSON)
-	assertNoRootLockNoReleseLock(t, awsc, release)
+	assertNoReleaseLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("no locks acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
+	})
 }
 
 func Test_DeployHandler_Execution_Errors_CreatedAt_Past(t *testing.T) {
@@ -160,34 +177,10 @@ func Test_DeployHandler_Execution_Errors_CreatedAt_Past(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "older", exec.LastOutputJSON)
-	assertNoRootLockNoReleseLock(t, awsc, release)
+	assertNoReleaseLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
-		"FailureClean",
-	}, exec.Path())
-}
-
-func Test_DeployHandler_Execution_Errors_Root_LockError(t *testing.T) {
-	release := MockRelease()
-	awsc := MockAwsClients(release)
-
-	state_machine := createTestStateMachine(t, awsc)
-
-	awsc.S3.AddPutObject(*release.RootLockPath(), fmt.Errorf("PuttyError"))
-
-	exec, err := state_machine.Execute(release)
-
-	assert.Error(t, err)
-	assert.Regexp(t, "LockError", exec.LastOutputJSON)
-	assert.Regexp(t, "PuttyError", exec.LastOutputJSON)
-
-	assertNoRootLockWithReleseLock(t, awsc, release)
-
-	assert.Equal(t, []string{
-		"Validate",
-		"Lock",
-		"ReleaseLockFailure",
 		"FailureClean",
 	}, exec.Path())
 
@@ -202,7 +195,11 @@ func Test_DeployHandler_Execution_Errors_LockExistsError(t *testing.T) {
 
 	state_machine := createTestStateMachine(t, awsc)
 
-	awsc.S3.AddGetObject(*release.RootLockPath(), `{"uuid":"notuuid"}`, nil)
+	awsc.DynamoDB.PutItemError = awserr.New(
+		dynamodb.ErrCodeConditionalCheckFailedException,
+		"DynamoDB PutItem Error",
+		nil,
+	)
 
 	exec, err := state_machine.Execute(release)
 
@@ -262,7 +259,7 @@ func Test_DeployHandler_Execution_Errors_WrongLambdaTags(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "DeployWith", exec.LastOutputJSON)
-	assertNoRootLockWithReleseLock(t, awsc, release)
+	assertHasReleaseLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -271,6 +268,18 @@ func Test_DeployHandler_Execution_Errors_WrongLambdaTags(t *testing.T) {
 		"ReleaseLockFailure",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("root lock acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 1, len(awsc.DynamoDB.PutItemInputs))
+		assert.Contains(t, awsc.DynamoDB.PutItemInputs[0].Item["key"].String(), "00000000/project/development/lock")
+		assert.Equal(t, "lock-locks", *awsc.DynamoDB.PutItemInputs[0].TableName)
+	})
+
+	t.Run("root lock released in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 1, len(awsc.DynamoDB.DeleteItemInputs))
+		assert.Contains(t, awsc.DynamoDB.DeleteItemInputs[0].Key["key"].String(), "00000000/project/development/lock")
+		assert.Equal(t, "lock-locks", *awsc.DynamoDB.PutItemInputs[0].TableName)
+	})
 }
 
 func Test_DeployHandler_Execution_Errors_WrongSFNPath(t *testing.T) {
@@ -286,7 +295,7 @@ func Test_DeployHandler_Execution_Errors_WrongSFNPath(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "Role Path", exec.LastOutputJSON)
-	assertNoRootLockWithReleseLock(t, awsc, release)
+	assertHasReleaseLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
@@ -295,6 +304,18 @@ func Test_DeployHandler_Execution_Errors_WrongSFNPath(t *testing.T) {
 		"ReleaseLockFailure",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("root lock acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 1, len(awsc.DynamoDB.PutItemInputs))
+		assert.Contains(t, awsc.DynamoDB.PutItemInputs[0].Item["key"].String(), "00000000/project/development/lock")
+		assert.Equal(t, "lock-locks", *awsc.DynamoDB.PutItemInputs[0].TableName)
+	})
+
+	t.Run("root lock released in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 1, len(awsc.DynamoDB.DeleteItemInputs))
+		assert.Contains(t, awsc.DynamoDB.DeleteItemInputs[0].Key["key"].String(), "00000000/project/development/lock")
+		assert.Equal(t, "lock-locks", *awsc.DynamoDB.PutItemInputs[0].TableName)
+	})
 }
 
 func Test_DeployHandler_Execution_Errors_BadLambdaSHA(t *testing.T) {
@@ -309,12 +330,15 @@ func Test_DeployHandler_Execution_Errors_BadLambdaSHA(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "Lambda SHA", exec.LastOutputJSON)
-	assertNoRootLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("no locks acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
+	})
 }
 
 func Test_DeployHandler_Execution_Errors_BadReleasePath(t *testing.T) {
@@ -329,12 +353,15 @@ func Test_DeployHandler_Execution_Errors_BadReleasePath(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "uploaded Release struct", exec.LastOutputJSON)
-	assertNoRootLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("no locks acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
+	})
 }
 
 func Test_DeployHandler_Execution_Errors_WrongReleasePath(t *testing.T) {
@@ -349,12 +376,15 @@ func Test_DeployHandler_Execution_Errors_WrongReleasePath(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "Release SHA", exec.LastOutputJSON)
-	assertNoRootLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("no locks acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
+	})
 }
 
 func Test_DeployHandler_Execution_Errors_DifferentReleaseSHA(t *testing.T) {
@@ -369,12 +399,15 @@ func Test_DeployHandler_Execution_Errors_DifferentReleaseSHA(t *testing.T) {
 	assert.Error(t, err)
 	assert.Regexp(t, "BadReleaseError", exec.LastOutputJSON)
 	assert.Regexp(t, "Release SHA", exec.LastOutputJSON)
-	assertNoRootLock(t, awsc, release)
 
 	assert.Equal(t, []string{
 		"Validate",
 		"FailureClean",
 	}, exec.Path())
+
+	t.Run("no locks acquired in dynamodb", func(t *testing.T) {
+		assert.Equal(t, 0, len(awsc.DynamoDB.PutItemInputs))
+	})
 }
 
 // Upload Errors

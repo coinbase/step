@@ -241,12 +241,7 @@ func (r *Release) TimedOut() error {
 ///////
 
 // UnlockRootLock deletes the Lock File for the release
-func (r *Release) UnlockRoot(s3c aws.S3API, locker Locker, lockTableName string) error {
-	err := s3.ReleaseLock(s3c, r.Bucket, r.RootLockPath(), *r.UUID)
-	if err != nil {
-		return err
-	}
-
+func (r *Release) UnlockRoot(locker Locker, lockTableName string) error {
 	return locker.ReleaseLock(lockTableName, *r.RootLockPath(), *r.UUID)
 }
 
@@ -260,20 +255,14 @@ func (r *Release) GrabLocks(s3c aws.S3API, locker Locker, lockTableName string) 
 		return err
 	}
 
-	if err := r.GrabRootLock(s3c, locker, lockTableName); err != nil {
+	if err := r.GrabRootLock(locker, lockTableName); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (r *Release) GrabRootLock(s3c aws.S3API, locker Locker, lockTableName string) error {
-	// DEPRECATED: this will gradually be replaced by `grabGenericLock` (below).
-	err := r.grabS3Lock(s3c, *r.RootLockPath())
-	if err != nil {
-		return err
-	}
-
+func (r *Release) GrabRootLock(locker Locker, lockTableName string) error {
 	return r.grabGenericLock(locker, lockTableName, *r.RootLockPath())
 }
 
@@ -289,8 +278,6 @@ func (r *Release) CheckUserLock(s3c aws.S3API, lockPath string) error {
 	return nil
 }
 
-// DEPRECATED: this will gradually be replaced by `grabGenericLock` (below),
-// but it is currently preserved for backwards compatibility.
 func (r *Release) grabS3Lock(s3c aws.S3API, lockPath string) error {
 	grabbed, err := s3.GrabLock(s3c, r.Bucket, &lockPath, *r.UUID)
 

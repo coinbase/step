@@ -329,7 +329,7 @@ func (r *Release) grabGenericLock(locker Locker, lockTableName string, lockPath 
 		return &errors.LockExistsError{
 			fmt.Sprintf(
 				"Lock Already Exists at %v:%v\nRun the following to clear it: " +
-				"aws dynamodb delete-item --table-name %[1]v --key='{\"file_name\": {\"S\": \"%[2]v\" }}'",
+				"aws dynamodb delete-item --table-name %[1]v --key='{\"key\": {\"S\": \"%[2]v\" }}'",
 				lockTableName, lockPath,
 			),
 		}

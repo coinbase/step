@@ -93,3 +93,7 @@ func (s *MapState) SetType(t *string) {
 func (s *MapState) GetType() *string {
 	return s.Type
 }
+
+func (s *MapState) GetNext() *string {
+	return s.Next
+}

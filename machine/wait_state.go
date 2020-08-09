@@ -101,3 +101,7 @@ func (s *WaitState) SetType(t *string) {
 func (s *WaitState) GetType() *string {
 	return s.Type
 }
+
+func (s *WaitState) GetNext() *string {
+	return s.Next
+}

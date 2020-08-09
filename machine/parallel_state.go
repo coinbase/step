@@ -45,13 +45,26 @@ func (s *ParallelState) Execute(_ context.Context, input interface{}) (output in
 	return nil, s.Next, nil
 }
 
+// TODO: umv: accumulate all errors before return
 func (s *ParallelState) Validate() error {
 	s.SetType(to.Strp("Parallel"))
-
+	// TODO: umv: Default Validator (Do we need it?)
 	if err := ValidateNameAndType(s); err != nil {
 		return fmt.Errorf("%v %v", errorPrefix(s), err)
 	}
+	// 1. State Must contains Not Null Branches
+	if s.Branches == nil || len(s.Branches) < 1 {
+		return  fmt.Errorf("branches can't be nil or empty (len = 0)")
+	}
 
+	// 2. Every state (except Succeed) must have Next or End is Validating inside it own Validate method (i.e. in State)
+	// 3. Reachable Next is testing in State machine validate method
+	for _, b := range s.Branches {
+		err := b.Validate()
+		if err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
@@ -61,4 +74,8 @@ func (s *ParallelState) SetType(t *string) {
 
 func (s *ParallelState) GetType() *string {
 	return s.Type
+}
+
+func (s *ParallelState) GetNext() *string {
+	return s.Next
 }

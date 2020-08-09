@@ -112,3 +112,7 @@ func (s *TaskState) SetType(t *string) {
 func (s *TaskState) GetType() *string {
 	return s.Type
 }
+
+func (s *TaskState) GetNext() *string {
+	return s.Next
+}

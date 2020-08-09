@@ -60,3 +60,7 @@ func (s *PassState) SetType(t *string) {
 func (s *PassState) GetType() *string {
 	return s.Type
 }
+
+func (s *PassState) GetNext() *string {
+	return s.Next
+}

@@ -23,6 +23,7 @@ type State interface {
 
 	Name() *string
 	GetType() *string
+	GetNext() *string
 }
 
 type stateStr struct {
@@ -82,6 +83,10 @@ func (s *stateStr) Name() *string {
 
 func (s *stateStr) SetName(name *string) {
 	s.name = name
+}
+
+func (s *stateStr) GetNext() *string {
+	return nil
 }
 
 func nextState(next *string, end *bool) *string {

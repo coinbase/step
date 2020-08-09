@@ -140,7 +140,16 @@ func (sm *StateMachine) Validate() error {
 		return fmt.Errorf("State Errors %q", state_errors)
 	}
 
-	// TODO: validate all states are reachable
+	for _, state := range sm.States {
+		next := state.GetNext()
+		if next != nil {
+            s := sm.States[*next]
+            // todo: UMV: think about Loop state (if next == state name)
+            if s == nil {
+				return fmt.Errorf("state \"%s\" next state \"%s\" is unreachable", *state.Name(), *next)
+			}
+		}
+	}
 	return nil
 }
 

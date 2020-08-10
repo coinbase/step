@@ -26,9 +26,10 @@ type ParallelStateExecution struct {
 }
 
 func (s *ParallelState) Execute(_ context.Context, input interface{}) (output interface{}, next *string, err error) {
-	// parallel state according to asl spec does not assume Next therefore we could run each branch as a separate
+	// UMV: I was placed this struct for Debug purposes, i.e. to use  ParallelStateExecution for console output or pass somewhere
     execution := ParallelStateExecution{}
     execution.BranchExecution = make([]*BranchExecution, len(s.Branches))
+    outData := make([]interface{}, len(execution.BranchExecution))
     awaiter := sync.WaitGroup{}
     awaiter.Add(len(s.Branches))
 	for i, b := range s.Branches {
@@ -37,12 +38,12 @@ func (s *ParallelState) Execute(_ context.Context, input interface{}) (output in
 			execution.BranchExecution[index] = &BranchExecution{}
 			execution.BranchExecution[index].Execution = result
 			execution.BranchExecution[index].ExecutionError = err
+			outData[index] = result.Output
 			defer awaiter.Done()
 		}(i, &b)
 	}
 	awaiter.Wait()
-	// TODO: UMV: do think how to use execution (ParallelStateExecution)
-	return nil, s.Next, nil
+	return outData, s.Next, nil
 }
 
 // TODO: umv: accumulate all errors before return

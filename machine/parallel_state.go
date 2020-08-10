@@ -13,6 +13,7 @@ type ParallelState struct {
 	Type *string
 	Comment *string `json:",omitempty"`
 	Next *string
+	End *bool
 	Branches []StateMachine
 }
 
@@ -49,17 +50,22 @@ func (s *ParallelState) Execute(_ context.Context, input interface{}) (output in
 // TODO: umv: accumulate all errors before return
 func (s *ParallelState) Validate() error {
 	s.SetType(to.Strp("Parallel"))
-	// TODO: umv: Default Validator (Do we need it?)
+	// 1. Validate Name & Type
 	if err := ValidateNameAndType(s); err != nil {
 		return fmt.Errorf("%v %v", errorPrefix(s), err)
 	}
-	// 1. State Must contains Not Null Branches
+	// 2. State Must have either Next or End  field
+	if s.Next == nil && s.End == nil {
+		return fmt.Errorf("parallel state must have either \"Next\" or \"End\" property")
+	}
+	// 3. State Must contains Not Null Branches
 	if s.Branches == nil || len(s.Branches) < 1 {
-		return  fmt.Errorf("branches can't be nil or empty (len = 0)")
+		return fmt.Errorf("branches can't be nil or empty (len = 0)")
 	}
 
-	// 2. Every state (except Succeed) must have Next or End is Validating inside it own Validate method (i.e. in State)
-	// 3. Reachable Next is testing in State machine validate method
+	// Following conditions checks in StateMachine Validate()
+	// 4. Every state (except Succeed) must have Next or End is Validating inside it own Validate method (i.e. in State)
+	// 5. Reachable Next is testing in State machine validate method
 	for _, b := range s.Branches {
 		err := b.Validate()
 		if err != nil {

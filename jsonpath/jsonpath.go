@@ -318,7 +318,7 @@ func filterInterfaces(data []interface{}, filter *string) ([]interface{}, error)
 	indexesStatements := strings.Split(trimmedFilter, ",")
 	for _, statement := range indexesStatements {
 		if strings.Index(statement, ":") == -1 {
-			indexValue, err := strconv.ParseInt(statement, 10, 32)
+			indexValue, err := strconv.ParseInt(strings.Trim(statement, " "), 10, 32)
 			if err != nil {
 				return nil, err
 			}

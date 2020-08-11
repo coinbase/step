@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -208,7 +209,7 @@ func (path *Path) Get(input interface{}) (value interface{}, err error) {
 
 // GetSlice returns array from Path
 
-func (path *Path) GetSlice(input interface{}) (output []interface{}, err error ) {
+func (path *Path) GetSlice(input interface{}) (output []interface{}, err error) {
 	output_value, err := path.Get(input)
 
 	if err != nil {
@@ -280,6 +281,21 @@ func recursiveGet(data interface{}, path []string) (interface{}, error) {
 	}
 
 	switch data.(type) {
+	case []interface{}:
+		// TODO: UMV: assume that here we should have at zero index of path - index of object, in future we should impl some checks
+		// jsonpath array could be specified like $.[0] or $.[0, 1, n] or slice $.[3:] or even $.[0, 1:5, 8:11]
+		filteredData, filterErr := filterInterfaces(data.([]interface{}), &path[0])
+		if filterErr != nil {
+			return nil, filterErr
+		}
+		if len(path) == 1 {
+			return filteredData, nil
+		}
+		combinedResult := make([]interface{}, len(filteredData))
+		for i, fd := range filteredData {
+			combinedResult[i], _ = recursiveGet(fd, path[1:])
+		}
+		return combinedResult, nil
 	case map[string]interface{}:
 		value, ok := data.(map[string]interface{})[path[0]]
 
@@ -292,4 +308,26 @@ func recursiveGet(data interface{}, path []string) (interface{}, error) {
 	default:
 		return data, NOT_FOUND_ERROR
 	}
+}
+
+// TODO: UMV: test this function and maybe make it public?
+// TODO: UMV: here we don't process index overlapping, someday we should think about it
+func filterInterfaces(data []interface{}, filter *string) ([]interface{}, error) {
+	var filteredData []interface{}
+	trimmedFilter := strings.Trim(*filter, "][")
+	indexesStatements := strings.Split(trimmedFilter, ",")
+	for _, statement := range indexesStatements {
+		if strings.Index(statement, ":") == -1 {
+			indexValue, err := strconv.ParseInt(statement, 10, 32)
+			if err != nil {
+				return nil, err
+			}
+			filteredData = append(filteredData, data[indexValue])
+		} else {
+            // TODO: UMV: IMPL work with slice
+			// sliceIndexes := strings.Split(statement, ":")
+		}
+
+	}
+	return filteredData, nil
 }

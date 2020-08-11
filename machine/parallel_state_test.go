@@ -82,7 +82,42 @@ func Test_ParallelState_NonValid_Branches_Unreachable_Next(t *testing.T) {
 }
 
 func Test_ParallelState_Valid(t *testing.T) {
-
+	state := parseParallelTaskState([]byte(`{
+          "Type": "Parallel",
+          "Next": "Parallel_Block_Done",
+          "Branches": [
+            {
+              "StartAt": "Branch_A_Start",
+              "States": {
+                "Branch_A_Start": {
+                "Type": "TaskFn",
+                "Resource": "host1:machine1:func1",
+                "Next": "Branch_A_Next_One"
+                },
+                "Branch_A_Next_One": {
+                "Type": "TaskFn",
+                "Resource": "host1:machine1:func2",
+                "Next": "Branch_A_Done"
+                },
+                "Branch_A_Done": {
+                    "Type": "Succeed"
+                }
+              }
+            },
+            {
+              "StartAt": "Branch_B_Start",
+              "States": {
+                "Branch_B_Start": {
+                "Type": "TaskFn",
+                "Resource": "host1:machine2:func2",
+                "End": true
+                }
+              }
+            }
+          ]
+        }`), t)
+	err := state.Validate()
+	assert.Nil(t, err)
 }
 
 // Tests on state execution

@@ -3,7 +3,10 @@ package machine
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"math"
+	"strings"
 	"testing"
 
 	"github.com/coinbase/step/utils/to"
@@ -169,10 +172,6 @@ func Test_Machine_Execute_With_Parallel_State(t *testing.T) {
               "States": {
                 "CalculateAlpha": {
                   "Type": "TaskFn",
-                  "Parameters": {
-                     "angle": "alpha"
-                   },
-                  "Resource": "host1:app1:func1",
                   "End": true
                 }
               }
@@ -182,7 +181,6 @@ func Test_Machine_Execute_With_Parallel_State(t *testing.T) {
               "States": {
                 "CalculateBeta": {
                   "Type": "TaskFn",
-                  "Resource": "host1:app2:func1",
                   "End": true
                 }
               }
@@ -192,7 +190,6 @@ func Test_Machine_Execute_With_Parallel_State(t *testing.T) {
               "States": {
                 "CalculateGamma": {
                   "Type": "TaskFn",
-                  "Resource": "host1:app3:func1",
                   "End": true
                 }
               }
@@ -206,33 +203,68 @@ func Test_Machine_Execute_With_Parallel_State(t *testing.T) {
       }
     }`)) //
 	type Angle struct {
-		name string
-		value float64
+		Name string
+		Value float64
 	}
 
-    type Triangle struct {
-    	a float64
-    	b float64
-    	c float64
-    	alpha Angle
-    	beta Angle
-    	gamma Angle
+    type TriangleSides struct {
+    	A float64
+    	B float64
+    	C float64
+	}
+
+	type TriangleAngles struct {
+		Alpha Angle
+		Beta Angle
+		Gamma Angle
 	}
 
 	assert.Nil(t, err)
 
 	calculateAngle := func(context context.Context, input interface{})(Angle, error){
+		// TODO: UMV: Effective Input from Parameters does not work
+		// TODO: UMV: Therefore I have to understand what type of task here by TaskName (CalculateAlpha, ..Beta, ..Gamma)
+		taskName := strings.ToLower(input.(map[string]interface{})["Task"].(string))
+		sides := TriangleSides{}
+		triangleSidesRaw := input.(map[string]interface{})["Input"].(map[string]interface{})["triangle"]
+		mapstructure.Decode(triangleSidesRaw, &sides)
 		angle := Angle{}
+		aSquare := sides.A * sides.A
+		bSquare := sides.B * sides.B
+		cSquare := sides.C * sides.C
+		if strings.Contains(taskName, "alpha"){
+            angle.Name = "alpha"
+			angle.Value = math.Acos((bSquare + cSquare - aSquare)/(2 * sides.B * sides.C)) * (180 / math.Pi)
+		} else if strings.Contains(taskName, "beta") {
+			angle.Name = "beta"
+			angle.Value = math.Acos((aSquare + cSquare - bSquare)/(2 * sides.A * sides.C)) * (180 / math.Pi)
+		} else if strings.Contains(taskName, "gamma") {
+			angle.Name = "gamma"
+			angle.Value = math.Acos((aSquare + bSquare - cSquare)/(2 * sides.A * sides.B)) * (180 / math.Pi)
+		} else {
+			return angle, fmt.Errorf("unable to understand what angle to calculate")
+		}
 		return angle, nil
 	}
 
+	testAlphaAngleCalcLambda := "test_execute_lambda_alpha_calc"
+	testBetaAngleCalcLambda := "test_execute_lambda_beta_calc"
+	testGammaAngleCalcLambda := "test_execute_lambda_gamma_calc"
+
 	branches := stateMachine.States["CalculateTriangleAngles"].(*ParallelState)
 	branches.Branches[0].SetTaskHandler("CalculateAlpha", calculateAngle)
+	branches.Branches[0].SetResource(&testAlphaAngleCalcLambda)
 	branches.Branches[1].SetTaskHandler("CalculateBeta", calculateAngle)
+	branches.Branches[1].SetResource(&testBetaAngleCalcLambda)
 	branches.Branches[2].SetTaskHandler("CalculateGamma", calculateAngle)
+	branches.Branches[2].SetResource(&testGammaAngleCalcLambda)
 
-	stateMachine.SetTaskHandler("Summarize", func(context context.Context, input interface{})(Triangle, error){
-		triangle := Triangle{}
+	stateMachine.SetTaskHandler("Summarize", func(context context.Context, input interface{})(TriangleAngles, error){
+		triangle := TriangleAngles{}
+		// todo: umv: check that orders the same as expected
+		mapstructure.Decode(input.(map[string]interface{})["Input"].([]interface{})[0], &triangle.Alpha)
+		mapstructure.Decode(input.(map[string]interface{})["Input"].([]interface{})[1], &triangle.Beta)
+		mapstructure.Decode(input.(map[string]interface{})["Input"].([]interface{})[2], &triangle.Gamma)
 		return triangle, nil
 	})
 
@@ -243,68 +275,9 @@ func Test_Machine_Execute_With_Parallel_State(t *testing.T) {
 	executionRes, executionErr := stateMachine.Execute(input)
 	assert.Nil(t, executionErr)
 	assert.NotNil(t, executionRes)
+	assert.Equal(t, "{\n \"Alpha\": {\n  \"Name\": \"alpha\",\n  \"Value\": 36.86989764584401\n },\n " +
+		                        "\"Beta\": {\n  \"Name\": \"beta\",\n  \"Value\": 53.13010235415599\n },\n " +
+		                        "\"Gamma\": {\n  \"Name\": \"gamma\",\n  \"Value\": 90\n }\n}",
+		         executionRes.OutputJSON)
 
-	/*stateMachine.SetTaskHandler("StartCalculation", func (context context.Context, input interface{})(CalculationData, error){
-		data := CalculationData{}
-		x := input.(map[string]interface{})["Input"].(map[string]interface{})["data"].(map[string]interface{})["X"].(float64)
-		data.value = x
-		data.initial = 0
-		if x > 0 {
-			data.initial = 1
-		}
-		return data, nil
-	})
-
-	branches := stateMachine.States["CalculateVals"].(*ParallelState)
-	branches.Branches[0].SetTaskHandler("CalculateOffset", _calculateCoeff)
-	branches.Branches[1].SetTaskHandler("CalculateCoeff", _calculateOffset)
-	stateMachine.SetTaskHandler("CalculateY", _calculateResult)
-
-	testLambda := "test"
-	stateMachine.SetResource(&testLambda)
-
-	input := "{\"data\": {\"X\": 100 } }"
-	executionRes, executionErr := stateMachine.Execute(input)
-	assert.NotNil(t, executionErr)
-	assert.NotNil(t, executionRes)*/
 }
-
-/// private types and fucntions
-/*
-type CalculationData struct{
-	value float64
-	initial float64
-}
-
-type CalculationResult struct {
-	value float64
-}
-
-func _prepareCalculationData(context context.Context, input interface{})(CalculationData, error){
-	data := CalculationData{}
-	x := input.(map[string]interface{})["Input"].(map[string]interface{})["data"].(map[string]interface{})["X"].(float64)
-	data.value = x
-	data.initial = 0
-	if x > 0 {
-		data.initial = 1
-	}
-	return data, nil
-}
-
-func _calculateCoeff (context context.Context, input interface{})(CalculationResult, error){
-	result := CalculationResult {}
-	//input["Input"]
-	return result, nil
-}
-
-func _calculateOffset (context context.Context, input interface{})(CalculationResult, error){
-	result := CalculationResult {}
-	//input["Input"]
-	return result, nil
-}
-
-func _calculateResult (context context.Context, input interface{})(CalculationResult, error){
-	result := CalculationResult {}
-	//input["Input"]
-	return result, nil
-}*/

@@ -18,7 +18,7 @@ func Test_ParallelState_NonValid_State_No_Next_Or_End(t *testing.T) {
               "States": {
                 "Branch_A_Start": {
                 "Type": "TaskFn",
-                "Resource": "host1:machine1:func1",
+                "Resource": "host1:app1:func1",
                 "Next": "Branch_A_Done"
                 },
                 "Branch_A_Done": {
@@ -31,7 +31,7 @@ func Test_ParallelState_NonValid_State_No_Next_Or_End(t *testing.T) {
               "States": {
                 "Branch_B_Start": {
                 "Type": "TaskFn",
-                "Resource": "host1:machine2:func2",
+                "Resource": "host1:app2:func2",
                 "End": true
                 }
               }
@@ -67,7 +67,7 @@ func Test_ParallelState_NonValid_Branches_Unreachable_Next(t *testing.T) {
               "States": {
                 "Branch_A_Start": {
                 "Type": "TaskFn",
-                "Resource": "host1:machine1:func1",
+                "Resource": "host1:app1:func1",
                 "Next": "Branch_A_Done"
                 }
               }
@@ -91,12 +91,12 @@ func Test_ParallelState_Valid(t *testing.T) {
               "States": {
                 "Branch_A_Start": {
                 "Type": "TaskFn",
-                "Resource": "host1:machine1:func1",
+                "Resource": "host1:app1:func1",
                 "Next": "Branch_A_Next_One"
                 },
                 "Branch_A_Next_One": {
                 "Type": "TaskFn",
-                "Resource": "host1:machine1:func2",
+                "Resource": "host1:app1:func2",
                 "Next": "Branch_A_Done"
                 },
                 "Branch_A_Done": {
@@ -109,7 +109,7 @@ func Test_ParallelState_Valid(t *testing.T) {
               "States": {
                 "Branch_B_Start": {
                 "Type": "TaskFn",
-                "Resource": "host1:machine2:func2",
+                "Resource": "host1:app2:func2",
                 "End": true
                 }
               }
@@ -118,16 +118,6 @@ func Test_ParallelState_Valid(t *testing.T) {
         }`), t)
 	err := state.Validate()
 	assert.Nil(t, err)
-}
-
-// Tests on state execution
-
-func Test_Parallel_State_Execution(t *testing.T) {
-
-}
-
-func Test_Parallel_State_Execution_With_Subsequent_Input_Data_Usage(t *testing.T) {
-
 }
 
 // Private functions

@@ -3,18 +3,23 @@ package machine
 import (
 	"context"
 	"fmt"
+	"github.com/coinbase/step/jsonpath"
 	"github.com/coinbase/step/utils/to"
 	"sync"
 )
 
 type ParallelState struct {
 	stateStr // Include Defaults
-
 	Type *string
 	Comment *string `json:",omitempty"`
 	Next *string
 	End *bool
 	Branches []StateMachine
+
+	InputPath  *jsonpath.Path `json:",omitempty"`
+	OutputPath *jsonpath.Path `json:",omitempty"`
+	ResultPath *jsonpath.Path `json:",omitempty"`
+	Parameters interface{}    `json:",omitempty"`
 }
 
 type BranchExecution struct {
@@ -27,21 +32,21 @@ type ParallelStateExecution struct {
 }
 
 func (s *ParallelState) Execute(_ context.Context, input interface{}) (output interface{}, next *string, err error) {
-	// UMV: I was placed this struct for Debug purposes, i.e. to use  ParallelStateExecution for console output or pass somewhere
+	// UMV: ParallelStateExecution could be used
     execution := ParallelStateExecution{}
     execution.BranchExecution = make([]*BranchExecution, len(s.Branches))
     outData := make([]interface{}, len(execution.BranchExecution))
     awaiter := sync.WaitGroup{}
     awaiter.Add(len(s.Branches))
 	for i, b := range s.Branches {
-		go func(index int, branch *StateMachine){
+		go func(index int, branch StateMachine){
 			result, err := branch.Execute(input)
 			execution.BranchExecution[index] = &BranchExecution{}
 			execution.BranchExecution[index].Execution = result
 			execution.BranchExecution[index].ExecutionError = err
 			outData[index] = result.Output
 			defer awaiter.Done()
-		}(i, &b)
+		}(i, b)
 	}
 	awaiter.Wait()
 	return outData, s.Next, nil

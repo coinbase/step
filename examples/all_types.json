@@ -82,7 +82,30 @@
       "Type": "Succeed"
     },
     "Parallel": {
-      "Type": "Parallel"
+      "Type": "Parallel",
+      "End":  true,
+      "Branches": [
+        {
+          "StartAt": "TaskA",
+          "States": {
+            "TaskA": {
+              "Type": "Task",
+              "Resource": "ta",
+              "End": true
+            }
+          }
+        },
+        {
+          "StartAt": "TaskB",
+          "States": {
+            "TaskB": {
+              "Type": "Task",
+              "Resource": "tb",
+              "End": true
+            }
+          }
+        }
+      ]
     },
     "Wait": {
       "Type": "Wait",

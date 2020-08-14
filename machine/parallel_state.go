@@ -12,14 +12,14 @@ type ParallelState struct {
 	stateStr // Include Defaults
 	Type *string
 	Comment *string `json:",omitempty"`
-	Next *string
-	End *bool
+	Next *string`json:",omitempty"`
+	End *bool`json:",omitempty"`
 	Branches []StateMachine
 
 	InputPath  *jsonpath.Path `json:",omitempty"`
 	OutputPath *jsonpath.Path `json:",omitempty"`
 	ResultPath *jsonpath.Path `json:",omitempty"`
-	Parameters interface{}    `json:",omitempty"`
+	Parameters interface{} `json:",omitempty"`
 }
 
 type BranchExecution struct {

@@ -92,13 +92,13 @@ func Test_Machine_MarshallAllTypes(t *testing.T) {
 	sm.SetDefaultHandler()
 	assert.NoError(t, sm.Validate())
 
-	marshalled_json, err := json.Marshal(sm)
+	marshalledJson, err := json.Marshal(sm)
 	assert.NoError(t, err)
 
-	raw_json, err := ioutil.ReadFile(file)
+	rawJson, err := ioutil.ReadFile(file)
 	assert.NoError(t, err)
 
-	assert.JSONEq(t, string(raw_json), string(marshalled_json))
+	assert.JSONEq(t, string(rawJson), string(marshalledJson))
 }
 
 func Test_Machine_Execute_Simple_Chain(t *testing.T) {

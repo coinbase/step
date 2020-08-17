@@ -281,3 +281,106 @@ func Test_Machine_Execute_With_Parallel_State(t *testing.T) {
 		         executionRes.OutputJSON)
 
 }
+
+func Test_Machine_Execute_With_Map_State(t *testing.T){
+	stateMachine, err := FromJSON([]byte(`{
+      "Comment": "Calculate sum with subsequent category selection",
+      "StartAt": "ProcessGrades",
+      "States": {
+        "ProcessGrades": {
+          "Type": "Map",
+          "Next": "Sum",
+          "ItemsPath": "$.marks",
+          "Iterator": {
+            "StartAt": "Scale",
+            "States": {
+              "Scale": {
+                "Type": "TaskFn",
+                "Resource": "res",
+                "End": true
+              }
+            }
+          }
+        },
+        "Sum": {
+          "Type": "TaskFn",
+          "Next": "SelectGrade"
+        },
+        "SelectGrade": {
+          "Type": "Choice",
+          "Choices": [
+            {
+              "Variable": "$.total",
+              "NumericLessThan" : 60,
+              "Next": "CGrade"
+            }
+          ]
+        },
+        "AGrade": {
+          "Type": "TaskFn",
+          "End": true
+        },
+        "BGrade": {
+          "Type": "TaskFn",
+          "End": true
+        },
+        "CGrade": {
+          "Type": "TaskFn",
+          "End": true
+        }
+      }
+    }`))
+
+	type StudentMark struct {
+		Subject string
+		Mark float64
+	}
+
+	type TotalMark struct {
+		Total float64
+	}
+
+	type StudentGrade struct {
+		Grade string
+	}
+
+	gradeStateMachineResource := "text_execute_machine_student_grade_define"
+	stateMachine.SetResource(&gradeStateMachineResource)
+
+	scaleStateMachine := stateMachine.States["ProcessGrades"].(*MapState).Iterator
+
+	scaleStateMachine.SetTaskHandler("Scale", func(context context.Context, input interface{})(StudentMark, error){
+		mark := StudentMark{}
+		return mark, nil
+	})
+
+	stateMachine.SetTaskHandler("SelectGrade", func(context context.Context, input interface{})(TotalMark, error){
+		total := TotalMark{}
+		return total, nil
+	})
+
+	stateMachine.SetTaskHandler("AGrade", func(context context.Context, input interface{})(StudentGrade, error){
+		grade := StudentGrade{}
+		return grade, nil
+	})
+
+	stateMachine.SetTaskHandler("BGrade", func(context context.Context, input interface{})(StudentGrade, error){
+		grade := StudentGrade{}
+		return grade, nil
+	})
+
+	stateMachine.SetTaskHandler("CGrade", func(context context.Context, input interface{})(StudentGrade, error){
+		grade := StudentGrade{}
+		return grade, nil
+	})
+
+	assert.Nil(t, err)
+	err = stateMachine.Validate()
+	assert.Nil(t, err)
+	input := "{\"marks\": [ {\"subject\": \"math\", \"mark\": 4},  " +
+		                   "{\"subject\": \"physics\", \"mark\": 5}, " +
+		                   "{\"subject\": \"chemistry\", \"mark\": 5} ] }"
+	executionRes, executionErr := stateMachine.Execute(input)
+	assert.Nil(t, executionErr)
+	assert.NotNil(t, executionRes)
+}

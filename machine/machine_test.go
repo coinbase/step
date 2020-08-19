@@ -289,20 +289,20 @@ func Test_Machine_Execute_With_Map_State(t *testing.T){
       "States": {
         "ProcessGrades": {
           "Type": "Map",
-          "Next": "Sum",
+          "Next": "Avg",
           "ItemsPath": "$.marks",
           "Iterator": {
             "StartAt": "Scale",
             "States": {
               "Scale": {
                 "Type": "TaskFn",
-                "Resource": "res",
                 "End": true
               }
             }
-          }
+          },
+          "ResultPath": "$.allMarks"
         },
-        "Sum": {
+        "Avg": {
           "Type": "TaskFn",
           "Next": "SelectGrade"
         },
@@ -310,9 +310,27 @@ func Test_Machine_Execute_With_Map_State(t *testing.T){
           "Type": "Choice",
           "Choices": [
             {
-              "Variable": "$.total",
+              "Variable": "$.Avg",
               "NumericLessThan" : 60,
               "Next": "CGrade"
+            },
+            {
+              "And": [
+                {
+                  "Variable": "$.Avg",
+                  "NumericGreaterThanEquals" : 60
+                },
+                {
+                  "Variable": "$.Avg",
+                  "NumericLessThan" : 80
+                }
+              ],
+              "Next": "BGrade"
+            },
+            {
+              "Variable": "$.Avg",
+              "NumericGreaterThanEquals" : 80,
+              "Next": "AGrade"
             }
           ]
         },
@@ -336,8 +354,8 @@ func Test_Machine_Execute_With_Map_State(t *testing.T){
 		Mark float64
 	}
 
-	type TotalMark struct {
-		Total float64
+	type AvgMark struct {
+		Avg float64
 	}
 
 	type StudentGrade struct {
@@ -348,29 +366,45 @@ func Test_Machine_Execute_With_Map_State(t *testing.T){
 	stateMachine.SetResource(&gradeStateMachineResource)
 
 	scaleStateMachine := stateMachine.States["ProcessGrades"].(*MapState).Iterator
+	scaleResource := "test_state_machine_scale_grades"
+	scaleStateMachine.SetResource(&scaleResource)
 
 	scaleStateMachine.SetTaskHandler("Scale", func(context context.Context, input interface{})(StudentMark, error){
-		mark := StudentMark{}
+		mark :=StudentMark{}
+		mapstructure.Decode(input.(map[string]interface{})["Input"], &mark)
+        mark.Mark *= 100 / 5
 		return mark, nil
 	})
 
-	stateMachine.SetTaskHandler("SelectGrade", func(context context.Context, input interface{})(TotalMark, error){
-		total := TotalMark{}
-		return total, nil
+	stateMachine.SetTaskHandler("Avg", func(context context.Context, input interface{})(AvgMark, error){
+		var marks []StudentMark
+		rawMarks := input.(map[string]interface{})["Input"].(map[string]interface{})["allMarks"].([]interface{})
+		mapstructure.Decode(rawMarks, &marks)
+		avg := AvgMark{}
+		var total float64
+		total = 0
+		for _, m := range marks{
+			total += m.Mark
+		}
+		avg.Avg = total / float64(len(marks))
+		return avg, nil
 	})
 
 	stateMachine.SetTaskHandler("AGrade", func(context context.Context, input interface{})(StudentGrade, error){
 		grade := StudentGrade{}
+		grade.Grade = "Very good student"
 		return grade, nil
 	})
 
 	stateMachine.SetTaskHandler("BGrade", func(context context.Context, input interface{})(StudentGrade, error){
 		grade := StudentGrade{}
+		grade.Grade = "Good student"
 		return grade, nil
 	})
 
 	stateMachine.SetTaskHandler("CGrade", func(context context.Context, input interface{})(StudentGrade, error){
 		grade := StudentGrade{}
+		grade.Grade = "So-so student"
 		return grade, nil
 	})
 
@@ -383,4 +417,5 @@ func Test_Machine_Execute_With_Map_State(t *testing.T){
 	executionRes, executionErr := stateMachine.Execute(input)
 	assert.Nil(t, executionErr)
 	assert.NotNil(t, executionRes)
+	assert.Equal(t, "{\n \"Grade\": \"Very good student\"\n}", executionRes.OutputJSON)
 }

@@ -49,6 +49,9 @@
       "Type": "Fail",
       "Error": "ERROR",
       "Cause": "No Matches!"
+    },
+    "NextState": {
+      "Type": "Succeed"
     }
   }
 }

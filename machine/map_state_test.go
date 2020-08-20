@@ -15,7 +15,7 @@ func initialize_state_machine(state *StateMachine, t *testing.T) {
 	state.States = States{}
 	sm := parseTaskState([]byte(`{
 		"Resource": "asd",
-		"Next": "Pass",
+		"End": true,
 		"Retry": [{ "ErrorEquals": ["States.ALL"] }]
 	}`), t)
 	state.States["start"] = sm
@@ -25,7 +25,7 @@ func initialize_state_machine(state *StateMachine, t *testing.T) {
 // Execution
 
 func Test_MapState_ValidateResource(t *testing.T) {
-	state := parseMapState([]byte(`{ "Next": "Pass"}`), t)
+	state := parseMapState([]byte(`{ "End": true}`), t)
 	assert.Error(t, state.Validate())
 	state.Iterator = &StateMachine{}
 	assert.Error(t, state.Validate())
@@ -98,7 +98,7 @@ func Test_MapState_Catch(t *testing.T) {
 
 	// No Input path data. Should be caught
 	testState(state, stateTestData{
-		Input: map[string]interface{}{},
+		Input:  map[string]interface{}{},
 		Output: map[string]interface{}{"Error": "errorString", "Cause": "GetSlice Error \"Not Found\""},
 	}, t)
 

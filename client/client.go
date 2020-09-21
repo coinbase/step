@@ -38,7 +38,7 @@ func PrepareReleaseBundle(awsc aws.AwsClients, release *deployer.Release, zip_fi
 	}
 
 	err := s3.PutFile(
-		awsc.S3Client(nil, nil, nil),
+		awsc.S3Client(release.AwsRegion, nil, nil),
 		zip_file_path,
 		release.Bucket,
 		release.LambdaZipPath(),
@@ -52,7 +52,7 @@ func PrepareReleaseBundle(awsc aws.AwsClients, release *deployer.Release, zip_fi
 	release.CreatedAt = to.Timep(time.Now())
 
 	// Uploading the Release to S3 to match SHAs
-	if err := s3.PutStruct(awsc.S3Client(nil, nil, nil), release.Bucket, release.ReleasePath(), release); err != nil {
+	if err := s3.PutStruct(awsc.S3Client(release.AwsRegion, nil, nil), release.Bucket, release.ReleasePath(), release); err != nil {
 		return err
 	}
 

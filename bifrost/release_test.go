@@ -54,5 +54,5 @@ func Test_Bifrost_Release_Is_Valid(t *testing.T) {
 	release := MockRelease()
 	awsc := MockAwsClients(release)
 
-	assert.NoError(t, release.Validate(awsc.S3Client(nil, nil, nil), &Release{}))
+	assert.NoError(t, release.Validate(awsc.S3Client(release.AwsRegion, nil, nil), &Release{}))
 }

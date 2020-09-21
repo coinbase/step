@@ -14,7 +14,7 @@ func Test_Lock_GrabRootLock(t *testing.T) {
 	r2.UUID = to.Strp("NOTUUID")
 
 	awsc := MockAwsClients(r)
-	s3c := awsc.S3Client(nil, nil, nil)
+	s3c := awsc.S3Client(r.AwsRegion, nil, nil)
 	locker := NewInMemoryLocker()
 
 	t.Run("root lock acquired", func(t *testing.T) {

@@ -52,7 +52,7 @@ func ValidateHandler(awsc aws.AwsClients) interface{} {
 		release.SetDefaults(region, account, "coinbase-step-deployer-")
 
 		// Validate the attributes for the release
-		if err := release.Validate(awsc.S3Client(nil, nil, nil)); err != nil {
+		if err := release.Validate(awsc.S3Client(release.AwsRegion, nil, nil)); err != nil {
 			return nil, errors.BadReleaseError{err.Error()}
 		}
 
@@ -64,7 +64,7 @@ func LockHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
 		// returns LockExistsError, LockError
 		locker := dynamodb.NewDynamoDBLocker(awsc.DynamoDBClient(nil, nil, nil))
-		return release, release.GrabLocks(awsc.S3Client(nil, nil, nil), locker, getLockTableNameFromContext(ctx, "-locks"))
+		return release, release.GrabLocks(awsc.S3Client(release.AwsRegion, nil, nil), locker, getLockTableNameFromContext(ctx, "-locks"))
 	}
 }
 
@@ -87,13 +87,13 @@ func DeployHandler(awsc aws.AwsClients) interface{} {
 			return nil, DeploySFNError{err}
 		}
 
-		if err := release.DeployLambda(awsc.LambdaClient(release.AwsRegion, release.AwsAccountID, assumed_role), awsc.S3Client(nil, nil, nil)); err != nil {
+		if err := release.DeployLambda(awsc.LambdaClient(release.AwsRegion, release.AwsAccountID, assumed_role), awsc.S3Client(release.AwsRegion, nil, nil)); err != nil {
 			return nil, DeployLambdaError{err}
 		}
 
 		release.Success = to.Boolp(true)
 		locker := dynamodb.NewDynamoDBLocker(awsc.DynamoDBClient(nil, nil, nil))
-		release.UnlockRoot(awsc.S3Client(nil, nil, nil), locker, getLockTableNameFromContext(ctx, "-locks"))
+		release.UnlockRoot(awsc.S3Client(release.AwsRegion, nil, nil), locker, getLockTableNameFromContext(ctx, "-locks"))
 
 		return release, nil
 	}
@@ -102,7 +102,7 @@ func DeployHandler(awsc aws.AwsClients) interface{} {
 func ReleaseLockFailureHandler(awsc aws.AwsClients) interface{} {
 	return func(ctx context.Context, release *Release) (*Release, error) {
 		locker := dynamodb.NewDynamoDBLocker(awsc.DynamoDBClient(nil, nil, nil))
-		if err := release.UnlockRoot(awsc.S3Client(nil, nil, nil), locker, getLockTableNameFromContext(ctx, "-locks")); err != nil {
+		if err := release.UnlockRoot(awsc.S3Client(release.AwsRegion, nil, nil), locker, getLockTableNameFromContext(ctx, "-locks")); err != nil {
 			return nil, errors.LockError{err.Error()}
 		}
 

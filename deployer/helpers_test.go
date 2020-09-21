@@ -84,7 +84,7 @@ func createTestStateMachine(t *testing.T, awsc *mocks.MockClients) *machine.Stat
 }
 
 func assertNoRootLock(t *testing.T, awsc aws.AwsClients, release *Release) {
-	_, err := s3.Get(awsc.S3Client(nil, nil, nil), release.Bucket, release.RootLockPath())
+	_, err := s3.Get(awsc.S3Client(release.AwsRegion, nil, nil), release.Bucket, release.RootLockPath())
 	assert.Error(t, err) // Not found error
 	assert.IsType(t, &s3.NotFoundError{}, err)
 }
@@ -92,14 +92,14 @@ func assertNoRootLock(t *testing.T, awsc aws.AwsClients, release *Release) {
 func assertNoRootLockWithReleseLock(t *testing.T, awsc aws.AwsClients, release *Release) {
 	assertNoRootLock(t, awsc, release)
 
-	_, err := s3.Get(awsc.S3Client(nil, nil, nil), release.Bucket, release.ReleaseLockPath())
+	_, err := s3.Get(awsc.S3Client(release.AwsRegion, nil, nil), release.Bucket, release.ReleaseLockPath())
 	assert.NoError(t, err) // Not error
 }
 
 func assertNoRootLockNoReleseLock(t *testing.T, awsc aws.AwsClients, release *Release) {
 	assertNoRootLock(t, awsc, release)
 
-	_, err := s3.Get(awsc.S3Client(nil, nil, nil), release.Bucket, release.ReleaseLockPath())
+	_, err := s3.Get(awsc.S3Client(release.AwsRegion, nil, nil), release.Bucket, release.ReleaseLockPath())
 	assert.Error(t, err) // Not found error
 	assert.IsType(t, &s3.NotFoundError{}, err)
 }
